@@ -1,0 +1,97 @@
+name: LOCI
+description: Line of Code Insights Tool
+
+inputs:
+  mode:
+    description: Operation to perform. Can be 'upload' or 'summary'.
+    required: true
+  project:
+    description: Project name.
+    required: true
+  binaries:
+    description: >
+      Paths to binaries (required for 'upload', ignored for 'summary').
+      Accepts a newline-separated list.
+    required: false
+  target:
+    description: >
+      Project version name for this run (the name under which the uploaded
+      binaries and resulting summary are recorded). May be reused across
+      multiple runs. If omitted, it defaults to '<branch>@<shortSHA>' for the
+      current HEAD commit (e.g., 'main@a1b2c3d').
+    required: false
+  base:
+    description: >
+      Optional project base version name to compare 'target' against.
+      If omitted on pull_request events, it defaults to the PR merge base:
+      '<base-branch>@<base-shortSHA>'. On other events, no implicit base
+      is chosen unless you provide one.
+    required: false
+  top-n-symbols:
+    description: Number of symbols displayed in function insights - summary step
+    required: true
+    default: '5'
+
+
+outputs:
+  target:
+    description: Resolved project version name used for this run.
+    value: ${{ steps.resolve.outputs.target }}
+  base:
+    description: Resolved project base version name (may be empty).
+    value: ${{ steps.resolve.outputs.base }}
+  summary:
+    description: LOCI summary
+    value: ${{ steps.summary.outputs.loci_summary }}
+
+runs:
+  using: composite
+  steps:
+    - name: Validate inputs
+      run: |
+        if [[ "${{ inputs.mode }}" != "upload" && "${{ inputs.mode }}" != "summary" ]]; then
+          echo "Selected non-existing mode '${{ inputs.mode }}'. Select one of: {upload, summary}. Terminating."
+          exit 1
+        fi
+      shell: bash
+
+    - name: Set up Python 3.12
+      uses: actions/setup-python@v5.6.0
+      with:
+        python-version: '3.12'
+
+    - name: Restore pip cache
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip
+
+    - name: Install LOCI dependencies
+      uses: auroralabs-loci/loci-action/.github/actions/common@main
+
+    - name: Resolve Version
+      id: resolve
+      uses: auroralabs-loci/loci-action/.github/actions/resolve@main
+      with:
+        project:   ${{ inputs.project }}
+        target:    ${{ inputs.target }}
+        base:      ${{ inputs.base }}
+    
+    - name: Upload LOCI artifacts (target=${{ steps.resolve.outputs.target }}, base=${{ steps.resolve.outputs.base || 'none' }})
+      id: upload
+      if: ${{ inputs.mode == 'upload' }}
+      uses: auroralabs-loci/loci-action/.github/actions/upload@main
+      with:
+        project:   ${{ inputs.project }}
+        binaries:  ${{ inputs.binaries }}
+        target:    ${{ steps.resolve.outputs.target }}
+        base:      ${{ steps.resolve.outputs.base }}
+
+    - name: Generate LOCI summary
+      id: summary
+      if: ${{ inputs.mode == 'summary' }}
+      uses: auroralabs-loci/loci-action/.github/actions/summary@main
+      with:
+        project:   ${{ inputs.project }}
+        target:    ${{ steps.resolve.outputs.target }}
+        base:      ${{ steps.resolve.outputs.base }}

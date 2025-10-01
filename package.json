@@ -1,0 +1,18 @@
+{
+  "scripts": {
+    "build:common": "ncc build .github/actions/common/index.js -o .github/actions/common/dist",
+    "build:resolve": "ncc build .github/actions/resolve/index.js -o .github/actions/resolve/dist",
+    "build:upload": "ncc build .github/actions/upload/index.js -o .github/actions/upload/dist",
+    "build:summary": "ncc build .github/actions/summary/index.js -o .github/actions/summary/dist",
+    "build": "npm run build:common && npm run build:resolve && npm run build:upload && npm run build:summary"
+  },
+  "dependencies": {
+    "@actions/core": "^1.11.1",
+    "@actions/exec": "^1.1.1",
+    "@actions/github": "^6.0.1",
+    "fast-glob": "^3.3.3"
+  },
+  "devDependencies": {
+    "@vercel/ncc": "^0.38.3"
+  }
+}
