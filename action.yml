@@ -1,5 +1,10 @@
-name: LOCI AI Action
-description: Line of Code Insights Tool
+name: "LOCI Action"
+description: "Upload binaries and get LOCI performance insights directly in GitHub Actions"
+author: "AuroraLabs"
+
+branding:
+  icon: "cpu"
+  color: "orange"
 
 inputs:
   mode:
