@@ -1,10 +1,15 @@
 ## LOCI GitHub Action
 
 
-**Line of Code Insights (LOCI)** lets you upload compiled binaries for performance analysis, view insights directly in your workflow summary, and (if you install the GitHub App) automatically receive PR comments with results.
+[![View on Marketplace](https://img.shields.io/badge/GitHub%20Marketplace-View%20Action-blue?logo=github)](https://github.com/marketplace/actions/loci-action) [![Check Workflow Runs](https://img.shields.io/badge/Workflow%20Runs-View%20on%20GitHub-orange?logo=githubactions)](https://github.com/auroralabs-loci/loci-action/actions)
 
-- `upload`: uploads binaries to the `LOCI` backend.
-- `summary`: waits for the analysis to complete and attaches the agent report to the workflow run summary.
+
+**Line of Code Insights (LOCI)** Agentic AI is the First Hardware-Aware Optimization Agent for CPUs. It predicts power spikes and Performance inefficiencies before test or inference. Optimizes code, configs, and serving - autonomously. It uncovers anomalies in static data, shifts observability left, and predicts emerging trends in dynamic data, discovering hardware and software reliability issues, to reduce costs and time to resolution. 
+
+LOCI lets you upload compiled binaries for performance analysis, view insights directly in your workflow summary, and (if you install the GitHub App) automatically receive PR comments with results.
+
+- `upload`: uploads binaries in `LOCI`.
+- `summary`: waits for the analysis to complete and attaches the Agent Report to the workflow run summary.
   
   Comments on PRs are posted automatically by the GitHub App after completed binaries upload.
 
@@ -50,7 +55,7 @@ jobs:
         shell: bash
 
       - name: Upload Artifacts
-        uses: auroralabs-loci/loci-action@v1.0.0
+        uses: auroralabs-loci/loci-dev-action@main
         env:
           LOCI_API_KEY: ${{ secrets.LOCI_API_KEY }}
           LOCI_BACKEND_URL: ${{ vars.LOCI_BACKEND_URL }}
@@ -70,7 +75,7 @@ jobs:
       # ... build steps ...
 
       - name: LOCI Upload
-        uses: auroralabs-loci/loci-action@v1.0.0
+        uses: auroralabs-loci/loci-dev-action@main
         env:
           LOCI_API_KEY: ${{ secrets.LOCI_API_KEY }}
           LOCI_BACKEND_URL: ${{ vars.LOCI_BACKEND_URL }}
@@ -80,7 +85,7 @@ jobs:
           binaries: samples/build/bin/
 
       - name: LOCI Summary
-        uses: auroralabs-loci/loci-action@v1.0.0
+        uses: auroralabs-loci/loci-dev-action@main
         env:
           LOCI_API_KEY: ${{ secrets.LOCI_API_KEY }}
           LOCI_BACKEND_URL: ${{ vars.LOCI_BACKEND_URL }}
@@ -92,8 +97,8 @@ jobs:
 
 #### Good to know
 
-- The upload step is enough for the GitHub App to add a comment on the PR (if installed and company has agentic mode enabled).
-- The summary step is only needed if you want the workflow run summary to show the LOCI report and top function insights.
+- The upload step is enough for the GitHub App to add a comment on the PR (if installed and the company has agentic mode enabled).
+- The summary step is only needed if you want the workflow run summary to show the LOCI Report and Top Function Insights.
 
 
 ### Inputs
@@ -113,7 +118,7 @@ jobs:
 | --------- | -------------------------------------------------------- |
 | `target`  | Resolved project version name for this run.              |
 | `base`    | Resolved base version name (may be empty).               |
-| `summary` | LOCI summary text (only available when `mode: summary`). |
+| `summary` | LOCI Agent Summary Report (only available when `mode: summary`). |
 
 
 ### LOCI Features Overview
@@ -122,7 +127,7 @@ jobs:
 | ----------------------------- | -------------------------- | -------------------------------------------------------------------------------------------------- | -------------------- | --------------------------------------------------------- |
 | **Upload of binaries**        | ✅ Yes                      | ✅ Yes                                                                                              | ❌ No                 | LOCI Dashboard (always)                                   |
 | **Function Insights** | ✅ Yes (via `summary` step) | ✅ Yes (via `summary` step)                                                                         | ❌ No                 | Workflow run summary (summary step)                       |
-| **Agent Summary Report**      | ❌ Not available            | ✅ Yes<br>– In workflow run summary (if `summary` step added)<br>– As PR comment (if App installed) | ✅  For PR comment    | Workflow run summary (summary step) & PR comment (App)    |
+| **LOCI Agent Summary Report**      | ❌ Not available            | ✅ Yes<br>– In workflow run summary (if `summary` step added)<br>– As PR comment (if App installed) | ✅  For PR comment    | Workflow run summary (summary step) & PR comment (App)    |
 | **Performance Review Check**  | ❌ Not available            | ✅ Yes                                                                                              | ✅  Yes (App only)    | GitHub Checks tab (pass/fail based on `.github/loci.yml` user configuration) |
 
 ### How it works
@@ -132,5 +137,5 @@ jobs:
   - Standard mode → adds top-n Function Insights only.
   - Agentic mode → adds Agent Summary Report + Function Insights.
 - GitHub App installed →
-  - Posts Agent Summary Report as a PR comment (Agentic only).
+  - Posts LOCI Agent Summary Report as a PR comment (Agentic only).
   - Enables Performance Review Check Run (pass/fail).
