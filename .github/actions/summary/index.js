@@ -220,10 +220,11 @@ async function fetchAgentSummary(project, target, base, scmMeta) {
     output,
   ];
 
-  try {
 
-    let lapi_out = '';
-    let lapi_err = '';
+  let lapi_out = '';
+  let lapi_err = '';
+
+  try {
 
     await exec.exec("loci_api", loci_args, {
       silent: false,
@@ -237,9 +238,6 @@ async function fetchAgentSummary(project, target, base, scmMeta) {
         }
       }
     });
-
-    // console.debug('LOCI.API [stdout]:', lapi_out);
-    // console.debug('LOCI.API [stderr]:', lapi_err);
 
     const summary = JSON.parse(fs.readFileSync(output, "utf8"));
     if (!summary) {
@@ -259,39 +257,11 @@ async function fetchAgentSummary(project, target, base, scmMeta) {
 
     return "";
   } catch (err) {
-    core.warning(`Failed to fetch agent summary: ${err.message}`);
+    core.info(lapi_err);
+    const errMessage = lapi_out.trim() || lapi_err.trim() || `Failed to fetch agent summary: ${err.message}`;
+    core.warning(errMessage);
   }
   return "";
-}
-
-async function waitVersionProcessingToFinish(
-  project, 
-  target,
-  {
-    initialDelay = 30_000,
-    factor = 1.7,
-    maxDelay = 60_000
-  } = {}
-) {
-  let base = initialDelay;
-  const sleep = ms => new Promise(r => setTimeout(r, ms));
-  let logWaitMessage = true;
-
-  while (true) {
-    const { status, details } = await utils.fetchVersionStatusWithDetails(project, target);
-    if (status !== -1 ) {
-      return {status, details };
-    }
-
-    if (logWaitMessage) {
-      logWaitMessage = false;
-      core.info('Waiting for binaries processing to finish. This may take a moment...');
-    }
-
-    base = Math.min(maxDelay, Math.round(base * factor));
-    const delay = Math.floor(Math.random() * base);
-    await sleep(delay);
-  }
 }
 
 async function run() {
@@ -301,9 +271,9 @@ async function run() {
     const iBase = core.getInput("base", { required: false });
     const iTopNSymbols = core.getInput("top-n-symbols", { required: true });
 
-    const { status, details } = await waitVersionProcessingToFinish(iProject, iTarget);
+    const { status, status_message, details } = await utils.waitVersionProcessingToFinish(iProject, iTarget, false);
     if (status !== 0) {
-      throw new Error(`Processing of target version '${iTarget}' is unavailable.`)
+      throw new Error(`Target version '${iTarget}' failed during processing: ${status_message}.`);
     }
     core.info('Binaries processed successfully.');
 
@@ -329,9 +299,10 @@ async function run() {
     core.info("Insights fetched successfully.");
     core.endGroup();
 
-    core.startGroup("Fetch AI summary");
     let summary = null;
-    if (iBase && utils.isPullRequest()) {
+    const isAgentic = await utils.isAgentic();
+    if (iBase && utils.isPullRequest() && isAgentic) {
+      core.startGroup("Fetch AI summary");
       const pullReq = utils.getPullRequestData();
       if (pullReq) {
         const scmMeta = pullReq.getSCMMetaData();
@@ -340,12 +311,14 @@ async function run() {
           const details_message = `${details.message} [${details.label}](${details.url}).`;
           core.setOutput("loci_summary", `${summary}\n${details_message}`);
           core.info("AI summary report fetched successfully");
+        } else {
+          core.info("AI summary report is not available.");
         }
       } else {
-        core.warning("AI agent summary is not available outside of a pull request context.");
+        core.info("Skipping AI agent summary fetch: not in a pull request context.");
       }
+      core.endGroup();
     }
-    core.endGroup();
 
     await writeRunSummary(details, summary, diffSummary, insights, !!iBase, iTopNSymbols);
   } catch (err) {

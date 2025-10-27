@@ -56,6 +56,10 @@ async function run() {
       }
       if (!fs.existsSync(entry)) {
         const matches = await fg(entry, { onlyFiles: true });
+        if (!matches) {
+          console.warning(`No binary found for entry: ${entry}, skipping...`);
+          continue;
+        }
         binaries.add(...matches.filter(f => isELFFile(f)));
       } else {
         if (fs.statSync(entry).isDirectory()) {
@@ -99,7 +103,7 @@ async function run() {
     core.info("Project version uploaded");
     core.endGroup();
 
-    const { _, details } = await utils.fetchVersionStatusWithDetails(iProject, iTarget, silent=false, allowInProgress=true);
+    const { s, m, details } = await utils.fetchVersionStatusWithDetails(iProject, iTarget, silent=false, allowInProgress=true);
     await writeRunSummary(details);
   } catch (err) {
     core.setFailed(`Upload failed: ${err.message}. Terminating analysis.`);

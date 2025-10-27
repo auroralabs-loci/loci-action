@@ -38,7 +38,8 @@ async function run() {
     const iProject = core.getInput("project", { required: true });
     const iTarget = core.getInput("target", { required: false });
     const iBase = core.getInput("base", { required: false });
-    
+    const iWaitBase = core.getInput("wait-base", { required: false }) === 'true';
+
     const pullReq = utils.getPullRequestData();
     const actor = process.env.GITHUB_ACTOR || "";
     const isActorAutomated =
@@ -64,11 +65,26 @@ async function run() {
       if (pullReq) {
         core.info(`PullRequest: #${pullReq.prNumber}`);
       }
-      let {status, _} = await utils.fetchVersionStatus(iProject, base);
-      if (status == -1) {
-        throw new Error('Base version still in progress. Terminating comparison.');
-      } else if (status == 1) {
-        throw new Error('Base version failed. Terminating comparison.');
+
+      let status_code = null;
+      let status_message = '';
+      if (iWaitBase) {
+        const { status, sm, _ } = await utils.waitVersionProcessingToFinish(iProject, base, true);
+        status_code = status;
+        status_message = sm || 'Unknown error';
+      } else {
+        const { status, sm, _ } = await utils.fetchVersionStatus(iProject, base);
+        status_code = status;
+        status_message = sm || 'Unknown error';
+        if (status_code == -1) {
+          throw new Error("Base version is still being processed. Comparison terminated (waiting disabled).\n" +
+          "Tip: Re-run this workflow with 'wait-base' parameter set to 'true' to wait for the base version automatically.");
+        }
+      }
+      if (status_code == 0) {
+        core.info("Base version is ready. Proceeding with comparison.");
+      } else {
+        throw new Error(`Base version failed to process successfully: ${status_message}. Comparison aborted.`);
       }
     } else {
       core.info("Single Analysis");

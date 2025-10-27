@@ -1,7 +1,0 @@
-name: LOCI Common
-description: Setup Python and install dependencies
-author: AuroraLabs
-
-runs:
-  using: node20
-  main: dist/index.js

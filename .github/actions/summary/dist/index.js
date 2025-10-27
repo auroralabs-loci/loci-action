@@ -11,6 +11,7 @@ const exec = __nccwpck_require__(5236);
 const core = __nccwpck_require__(7484);
 const github = __nccwpck_require__(3228);
 
+const sleep = ms => new Promise(r => setTimeout(r, ms));
 class PullRequestData {
   constructor(context) {
     if (!context || !context.payload.pull_request) {
@@ -42,7 +43,7 @@ class PullRequestData {
 }
 
 function isPullRequest() {
-  return "pull_request" === process.env.GITHUB_EVENT_NAME;
+  return "pull_request" === process.env.GITHUB_EVENT_NAME || "pull_request_target" === process.env.GITHUB_EVENT_NAME;
 }
 
 function getPullRequestData() {
@@ -58,13 +59,41 @@ function getPullRequestData() {
   return new PullRequestData(context);
 }
 
-async function fetchVersionStatus(project, version, silent = true) {
+async function isAgentic(silent = true) {
+  const file = path.join(process.cwd(), "data.json");
+  try {
+    await exec.exec("loci_api", ["whoami", "--output", file], {
+      silent: silent,
+    });
+  } catch (err) {
+    throw new Error(
+      `Cannot obtain authenticated account information.`
+    );
+  }
+
+  try {
+    let data = JSON.parse(fs.readFileSync(file, "utf-8"));
+    if (!data) {
+      return false;
+    }
+    return data.agentic;
+  } catch (e) {
+    throw new Error(`Failed to read authenticated account details. ${e.message}.`);
+  }
+}
+
+async function fetchVersionStatus(project, version, silent = true, retryAfterFailure = false) {
   const file = path.join(process.cwd(), "data.json");
   try {
     await exec.exec("loci_api", ["status", project, version, "--output", file], {
       silent: silent,
     });
   } catch (err) {
+    if (retryAfterFailure) {
+      // retry once after delay in case version is on its way to be created (we are not able to fetch status yet)
+      await sleep(10_000);
+      return fetchVersionStatus(project, version, silent, false);
+    }
     throw new Error(
       `Version '${version}' does not exist. (${err}).`
     );
@@ -73,16 +102,16 @@ async function fetchVersionStatus(project, version, silent = true) {
   try {
     let data = JSON.parse(fs.readFileSync(file, "utf-8"));
     if (!data) {
-      return { status: 1, url: '' };
+      return { status: 1, status_message: '', url: '' };
     }
-    return { status: parseInt(data.status), url: data.url };
+    return { status: parseInt(data.status), status_message: data.status_message, url: data.url };
   } catch (e) {
     throw new Error(`Failed to obtain version status. ${e.message}.`);
   }
 }
 
-async function fetchVersionStatusWithDetails(project, target, silent = true, allowInProgress = false) {
-  const { status, url } = await fetchVersionStatus(project, target, silent);
+async function fetchVersionStatusWithDetails(project, target, silent = true, allowInProgress = false, retryAfterFailure = false) {
+  const { status, status_message, url } = await fetchVersionStatus(project, target, silent, retryAfterFailure);
 
   if (!allowInProgress && status === -1) {
     return { status: -1, details: null };
@@ -98,15 +127,48 @@ async function fetchVersionStatusWithDetails(project, target, silent = true, all
     url: url || ''
   };
 
-  return { status: status, details: details };
+  return { status: status, status_message: status_message, details: details };
+}
+
+async function waitVersionProcessingToFinish(
+  project, 
+  version,
+  isBase,
+  {
+    initialDelay = 30_000,
+    factor = 1.7,
+    maxDelay = 60_000
+  } = {}
+) {
+  let base = initialDelay;
+  let logWaitMessage = true;
+
+  while (true) {
+    const { status, status_message, details } = await fetchVersionStatusWithDetails(project, version, true, false, true);
+    if (status !== -1 ) {
+      return {status, status_message, details };
+    }
+
+    if (logWaitMessage) {
+      logWaitMessage = false;
+      const part = isBase ? 'base version' : 'target version';
+      core.info(`Waiting for ${part} binaries processing to finish. This may take a moment...`);
+    }
+
+    base = Math.min(maxDelay, Math.round(base * factor));
+    const delay = Math.floor(Math.random() * base);
+    await sleep(delay);
+  }
 }
 
 
 module.exports = {
-    isPullRequest: isPullRequest,
-    getPullRequestData: getPullRequestData,
-    fetchVersionStatus: fetchVersionStatus,
-    fetchVersionStatusWithDetails: fetchVersionStatusWithDetails
+  isAgentic: isAgentic,
+  isPullRequest: isPullRequest,
+  getPullRequestData: getPullRequestData,
+  fetchVersionStatus: fetchVersionStatus,
+  fetchVersionStatusWithDetails: fetchVersionStatusWithDetails,
+  waitVersionProcessingToFinish: waitVersionProcessingToFinish
 };
 
 /***/ }),
@@ -32166,10 +32228,11 @@ async function fetchAgentSummary(project, target, base, scmMeta) {
     output,
   ];
 
-  try {
 
-    let lapi_out = '';
-    let lapi_err = '';
+  let lapi_out = '';
+  let lapi_err = '';
+
+  try {
 
     await exec.exec("loci_api", loci_args, {
       silent: false,
@@ -32183,9 +32246,6 @@ async function fetchAgentSummary(project, target, base, scmMeta) {
         }
       }
     });
-
-    // console.debug('LOCI.API [stdout]:', lapi_out);
-    // console.debug('LOCI.API [stderr]:', lapi_err);
 
     const summary = JSON.parse(fs.readFileSync(output, "utf8"));
     if (!summary) {
@@ -32205,39 +32265,11 @@ async function fetchAgentSummary(project, target, base, scmMeta) {
 
     return "";
   } catch (err) {
-    core.warning(`Failed to fetch agent summary: ${err.message}`);
+    core.info(lapi_err);
+    const errMessage = lapi_out.trim() || lapi_err.trim() || `Failed to fetch agent summary: ${err.message}`;
+    core.warning(errMessage);
   }
   return "";
-}
-
-async function waitVersionProcessingToFinish(
-  project, 
-  target,
-  {
-    initialDelay = 30_000,
-    factor = 1.7,
-    maxDelay = 60_000
-  } = {}
-) {
-  let base = initialDelay;
-  const sleep = ms => new Promise(r => setTimeout(r, ms));
-  let logWaitMessage = true;
-
-  while (true) {
-    const { status, details } = await utils.fetchVersionStatusWithDetails(project, target);
-    if (status !== -1 ) {
-      return {status, details };
-    }
-
-    if (logWaitMessage) {
-      logWaitMessage = false;
-      core.info('Waiting for binaries processing to finish. This may take a moment...');
-    }
-
-    base = Math.min(maxDelay, Math.round(base * factor));
-    const delay = Math.floor(Math.random() * base);
-    await sleep(delay);
-  }
 }
 
 async function run() {
@@ -32247,9 +32279,9 @@ async function run() {
     const iBase = core.getInput("base", { required: false });
     const iTopNSymbols = core.getInput("top-n-symbols", { required: true });
 
-    const { status, details } = await waitVersionProcessingToFinish(iProject, iTarget);
+    const { status, status_message, details } = await utils.waitVersionProcessingToFinish(iProject, iTarget, false);
     if (status !== 0) {
-      throw new Error(`Processing of target version '${iTarget}' is unavailable.`)
+      throw new Error(`Target version '${iTarget}' failed during processing: ${status_message}.`);
     }
     core.info('Binaries processed successfully.');
 
@@ -32275,9 +32307,10 @@ async function run() {
     core.info("Insights fetched successfully.");
     core.endGroup();
 
-    core.startGroup("Fetch AI summary");
     let summary = null;
-    if (iBase && utils.isPullRequest()) {
+    const isAgentic = await utils.isAgentic();
+    if (iBase && utils.isPullRequest() && isAgentic) {
+      core.startGroup("Fetch AI summary");
       const pullReq = utils.getPullRequestData();
       if (pullReq) {
         const scmMeta = pullReq.getSCMMetaData();
@@ -32286,12 +32319,14 @@ async function run() {
           const details_message = `${details.message} [${details.label}](${details.url}).`;
           core.setOutput("loci_summary", `${summary}\n${details_message}`);
           core.info("AI summary report fetched successfully");
+        } else {
+          core.info("AI summary report is not available.");
         }
       } else {
-        core.warning("AI agent summary is not available outside of a pull request context.");
+        core.info("Skipping AI agent summary fetch: not in a pull request context.");
       }
+      core.endGroup();
     }
-    core.endGroup();
 
     await writeRunSummary(details, summary, diffSummary, insights, !!iBase, iTopNSymbols);
   } catch (err) {

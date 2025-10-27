@@ -11,6 +11,7 @@ const exec = __nccwpck_require__(5236);
 const core = __nccwpck_require__(7484);
 const github = __nccwpck_require__(3228);
 
+const sleep = ms => new Promise(r => setTimeout(r, ms));
 class PullRequestData {
   constructor(context) {
     if (!context || !context.payload.pull_request) {
@@ -42,7 +43,7 @@ class PullRequestData {
 }
 
 function isPullRequest() {
-  return "pull_request" === process.env.GITHUB_EVENT_NAME;
+  return "pull_request" === process.env.GITHUB_EVENT_NAME || "pull_request_target" === process.env.GITHUB_EVENT_NAME;
 }
 
 function getPullRequestData() {
@@ -58,13 +59,41 @@ function getPullRequestData() {
   return new PullRequestData(context);
 }
 
-async function fetchVersionStatus(project, version, silent = true) {
+async function isAgentic(silent = true) {
+  const file = path.join(process.cwd(), "data.json");
+  try {
+    await exec.exec("loci_api", ["whoami", "--output", file], {
+      silent: silent,
+    });
+  } catch (err) {
+    throw new Error(
+      `Cannot obtain authenticated account information.`
+    );
+  }
+
+  try {
+    let data = JSON.parse(fs.readFileSync(file, "utf-8"));
+    if (!data) {
+      return false;
+    }
+    return data.agentic;
+  } catch (e) {
+    throw new Error(`Failed to read authenticated account details. ${e.message}.`);
+  }
+}
+
+async function fetchVersionStatus(project, version, silent = true, retryAfterFailure = false) {
   const file = path.join(process.cwd(), "data.json");
   try {
     await exec.exec("loci_api", ["status", project, version, "--output", file], {
       silent: silent,
     });
   } catch (err) {
+    if (retryAfterFailure) {
+      // retry once after delay in case version is on its way to be created (we are not able to fetch status yet)
+      await sleep(10_000);
+      return fetchVersionStatus(project, version, silent, false);
+    }
     throw new Error(
       `Version '${version}' does not exist. (${err}).`
     );
@@ -73,16 +102,16 @@ async function fetchVersionStatus(project, version, silent = true) {
   try {
     let data = JSON.parse(fs.readFileSync(file, "utf-8"));
     if (!data) {
-      return { status: 1, url: '' };
+      return { status: 1, status_message: '', url: '' };
     }
-    return { status: parseInt(data.status), url: data.url };
+    return { status: parseInt(data.status), status_message: data.status_message, url: data.url };
   } catch (e) {
     throw new Error(`Failed to obtain version status. ${e.message}.`);
   }
 }
 
-async function fetchVersionStatusWithDetails(project, target, silent = true, allowInProgress = false) {
-  const { status, url } = await fetchVersionStatus(project, target, silent);
+async function fetchVersionStatusWithDetails(project, target, silent = true, allowInProgress = false, retryAfterFailure = false) {
+  const { status, status_message, url } = await fetchVersionStatus(project, target, silent, retryAfterFailure);
 
   if (!allowInProgress && status === -1) {
     return { status: -1, details: null };
@@ -98,15 +127,48 @@ async function fetchVersionStatusWithDetails(project, target, silent = true, all
     url: url || ''
   };
 
-  return { status: status, details: details };
+  return { status: status, status_message: status_message, details: details };
+}
+
+async function waitVersionProcessingToFinish(
+  project, 
+  version,
+  isBase,
+  {
+    initialDelay = 30_000,
+    factor = 1.7,
+    maxDelay = 60_000
+  } = {}
+) {
+  let base = initialDelay;
+  let logWaitMessage = true;
+
+  while (true) {
+    const { status, status_message, details } = await fetchVersionStatusWithDetails(project, version, true, false, true);
+    if (status !== -1 ) {
+      return {status, status_message, details };
+    }
+
+    if (logWaitMessage) {
+      logWaitMessage = false;
+      const part = isBase ? 'base version' : 'target version';
+      core.info(`Waiting for ${part} binaries processing to finish. This may take a moment...`);
+    }
+
+    base = Math.min(maxDelay, Math.round(base * factor));
+    const delay = Math.floor(Math.random() * base);
+    await sleep(delay);
+  }
 }
 
 
 module.exports = {
-    isPullRequest: isPullRequest,
-    getPullRequestData: getPullRequestData,
-    fetchVersionStatus: fetchVersionStatus,
-    fetchVersionStatusWithDetails: fetchVersionStatusWithDetails
+  isAgentic: isAgentic,
+  isPullRequest: isPullRequest,
+  getPullRequestData: getPullRequestData,
+  fetchVersionStatus: fetchVersionStatus,
+  fetchVersionStatusWithDetails: fetchVersionStatusWithDetails,
+  waitVersionProcessingToFinish: waitVersionProcessingToFinish
 };
 
 /***/ }),
@@ -39260,6 +39322,10 @@ async function run() {
       }
       if (!fs.existsSync(entry)) {
         const matches = await fg(entry, { onlyFiles: true });
+        if (!matches) {
+          console.warning(`No binary found for entry: ${entry}, skipping...`);
+          continue;
+        }
         binaries.add(...matches.filter(f => isELFFile(f)));
       } else {
         if (fs.statSync(entry).isDirectory()) {
@@ -39303,7 +39369,7 @@ async function run() {
     core.info("Project version uploaded");
     core.endGroup();
 
-    const { _, details } = await utils.fetchVersionStatusWithDetails(iProject, iTarget, silent=false, allowInProgress=true);
+    const { s, m, details } = await utils.fetchVersionStatusWithDetails(iProject, iTarget, silent=false, allowInProgress=true);
     await writeRunSummary(details);
   } catch (err) {
     core.setFailed(`Upload failed: ${err.message}. Terminating analysis.`);

@@ -12,6 +12,10 @@ inputs:
   base:
     description: Base version name. If provided, version is compared against it.
     required: false
+  wait-base:
+    description: Whether to wait for the base version processing to finish.
+    required: false
+    default: 'false'
 
 outputs:
   target: 

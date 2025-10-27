@@ -1,5 +1,10 @@
-name: LOCI
-description: Line of Code Insights Tool
+name: "LOCI Action"
+description: "Upload binaries and get LOCI performance insights directly in GitHub Actions"
+author: "AuroraLabs"
+
+branding:
+  icon: "cpu"
+  color: "orange"
 
 inputs:
   mode:
@@ -73,11 +78,11 @@ runs:
         key: ${{ runner.os }}-pip
 
     - name: Install LOCI dependencies
-      uses: auroralabs-loci/loci-dev-action/.github/actions/common@main
+      uses: auroralabs-loci/loci-action/.github/actions/common@v1.0.1
 
     - name: Resolve Version
       id: resolve
-      uses: auroralabs-loci/loci-dev-action/.github/actions/resolve@main
+      uses: auroralabs-loci/loci-action/.github/actions/resolve@v1.0.1
       with:
         project:   ${{ inputs.project }}
         target:    ${{ inputs.target }}
@@ -87,7 +92,7 @@ runs:
     - name: Upload LOCI artifacts (target=${{ steps.resolve.outputs.target }}, base=${{ steps.resolve.outputs.base || 'none' }})
       id: upload
       if: ${{ inputs.mode == 'upload' }}
-      uses: auroralabs-loci/loci-dev-action/.github/actions/upload@main
+      uses: auroralabs-loci/loci-action/.github/actions/upload@v1.0.1
       with:
         project:   ${{ inputs.project }}
         binaries:  ${{ inputs.binaries }}
@@ -97,7 +102,7 @@ runs:
     - name: Generate LOCI summary
       id: summary
       if: ${{ inputs.mode == 'summary' }}
-      uses: auroralabs-loci/loci-dev-action/.github/actions/summary@main
+      uses: auroralabs-loci/loci-action/.github/actions/summary@v1.0.1
       with:
         project:   ${{ inputs.project }}
         target:    ${{ steps.resolve.outputs.target }}

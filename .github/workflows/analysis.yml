@@ -1,6 +1,11 @@
 name: LOCI Integration
 on:
   workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches: 
+      - main
 
 env:
   LOCI_PROJECT: GHDemo
@@ -29,7 +34,7 @@ jobs:
         shell: bash
 
       - name: Upload Artifacts
-        uses: auroralabs-loci/loci-action@v1.0.0
+        uses: auroralabs-loci/loci-action@v1.0.1
         env:
           LOCI_API_KEY: '${{ secrets.LOCI_API_KEY }}'
           LOCI_BACKEND_URL: '${{ vars.LOCI_BACKEND_URL }}'
@@ -39,7 +44,7 @@ jobs:
           binaries: samples/build/bin/
 
       - name: Wait for Agent Summary
-        uses: auroralabs-loci/loci-action@v1.0.0
+        uses: auroralabs-loci/loci-action@v1.0.1
         env:
           LOCI_API_KEY: '${{ secrets.LOCI_API_KEY }}'
           LOCI_BACKEND_URL: '${{ vars.LOCI_BACKEND_URL }}'
@@ -47,3 +52,4 @@ jobs:
         with:
           mode: summary
           project: ${{ env.LOCI_PROJECT }}
+          wait-base: 'true'
