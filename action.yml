@@ -1,10 +1,5 @@
-name: "LOCI Action"
-description: "Upload binaries and get LOCI performance insights directly in GitHub Actions"
-author: "AuroraLabs"
-
-branding:
-  icon: "cpu"
-  color: "orange"
+name: LOCI
+description: Line of Code Insights Tool
 
 inputs:
   mode:
@@ -36,6 +31,12 @@ inputs:
     description: Number of symbols displayed in function insights - summary step
     required: true
     default: '5'
+  wait-base:
+    description: >
+      Whether to wait for the base version processing to finish
+      (only relevant if 'base' is provided and not yet processed).
+    required: false
+    default: 'false'
 
 
 outputs:
@@ -72,20 +73,21 @@ runs:
         key: ${{ runner.os }}-pip
 
     - name: Install LOCI dependencies
-      uses: auroralabs-loci/loci-action/.github/actions/common@v1.0.0
+      uses: auroralabs-loci/loci-dev-action/.github/actions/common@main
 
     - name: Resolve Version
       id: resolve
-      uses: auroralabs-loci/loci-action/.github/actions/resolve@v1.0.0
+      uses: auroralabs-loci/loci-dev-action/.github/actions/resolve@main
       with:
         project:   ${{ inputs.project }}
         target:    ${{ inputs.target }}
         base:      ${{ inputs.base }}
+        wait-base: ${{ inputs.wait-base }}
     
     - name: Upload LOCI artifacts (target=${{ steps.resolve.outputs.target }}, base=${{ steps.resolve.outputs.base || 'none' }})
       id: upload
       if: ${{ inputs.mode == 'upload' }}
-      uses: auroralabs-loci/loci-action/.github/actions/upload@v1.0.0
+      uses: auroralabs-loci/loci-dev-action/.github/actions/upload@main
       with:
         project:   ${{ inputs.project }}
         binaries:  ${{ inputs.binaries }}
@@ -95,7 +97,7 @@ runs:
     - name: Generate LOCI summary
       id: summary
       if: ${{ inputs.mode == 'summary' }}
-      uses: auroralabs-loci/loci-action/.github/actions/summary@v1.0.0
+      uses: auroralabs-loci/loci-dev-action/.github/actions/summary@main
       with:
         project:   ${{ inputs.project }}
         target:    ${{ steps.resolve.outputs.target }}
