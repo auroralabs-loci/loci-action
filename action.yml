@@ -1,10 +1,5 @@
-name: "LOCI Action"
-description: "Upload binaries and get LOCI performance insights directly in GitHub Actions"
-author: "AuroraLabs"
-
-branding:
-  icon: "cpu"
-  color: "orange"
+name: LOCI
+description: Line of Code Insights Tool
 
 inputs:
   mode:
@@ -38,8 +33,15 @@ inputs:
     default: '5'
   wait-base:
     description: >
-      Whether to wait for the base version processing to finish
-      (only relevant if 'base' is provided and not yet processed).
+      Whether to wait for the base version’s processing to finish.
+      Only relevant if a base input is provided and it has not yet been processed.
+      Accepts 'true' or 'false'.
+    required: false
+    default: 'false'
+  optimize:
+    description: >
+      Whether to use the LOCI Coding Agent to optimize uploaded binaries (only for mode: upload).
+      Ignored if the PR author is the LOCI Agentic AI bot. Accepts 'true' or 'false'.
     required: false
     default: 'false'
 
@@ -78,11 +80,11 @@ runs:
         key: ${{ runner.os }}-pip
 
     - name: Install LOCI dependencies
-      uses: auroralabs-loci/loci-action/.github/actions/common@v1.0.1
+      uses: auroralabs-loci/loci-action/.github/actions/common@v1.0.2
 
     - name: Resolve Version
       id: resolve
-      uses: auroralabs-loci/loci-action/.github/actions/resolve@v1.0.1
+      uses: auroralabs-loci/loci-action/.github/actions/resolve@v1.0.2
       with:
         project:   ${{ inputs.project }}
         target:    ${{ inputs.target }}
@@ -92,17 +94,18 @@ runs:
     - name: Upload LOCI artifacts (target=${{ steps.resolve.outputs.target }}, base=${{ steps.resolve.outputs.base || 'none' }})
       id: upload
       if: ${{ inputs.mode == 'upload' }}
-      uses: auroralabs-loci/loci-action/.github/actions/upload@v1.0.1
+      uses: auroralabs-loci/loci-action/.github/actions/upload@v1.0.2
       with:
         project:   ${{ inputs.project }}
         binaries:  ${{ inputs.binaries }}
         target:    ${{ steps.resolve.outputs.target }}
         base:      ${{ steps.resolve.outputs.base }}
+        optimize:  ${{ inputs.optimize }}
 
     - name: Generate LOCI summary
       id: summary
       if: ${{ inputs.mode == 'summary' }}
-      uses: auroralabs-loci/loci-action/.github/actions/summary@v1.0.1
+      uses: auroralabs-loci/loci-action/.github/actions/summary@v1.0.2
       with:
         project:   ${{ inputs.project }}
         target:    ${{ steps.resolve.outputs.target }}
