@@ -55,7 +55,7 @@ jobs:
         shell: bash
 
       - name: Upload Artifacts
-        uses: auroralabs-loci/loci-action@v1.0.2
+        uses: auroralabs-loci/loci-action@v1
         env:
           LOCI_API_KEY: ${{ secrets.LOCI_API_KEY }}
           LOCI_BACKEND_URL: ${{ vars.LOCI_BACKEND_URL }}
@@ -75,7 +75,7 @@ jobs:
       # ... build steps ...
 
       - name: LOCI Upload
-        uses: auroralabs-loci/loci-action@v1.0.2
+        uses: auroralabs-loci/loci-action@v1
         env:
           LOCI_API_KEY: ${{ secrets.LOCI_API_KEY }}
           LOCI_BACKEND_URL: ${{ vars.LOCI_BACKEND_URL }}
@@ -85,7 +85,7 @@ jobs:
           binaries: samples/build/bin/
 
       - name: LOCI Summary
-        uses: auroralabs-loci/loci-action@v1.0.2
+        uses: auroralabs-loci/loci-action@v1
         env:
           LOCI_API_KEY: ${{ secrets.LOCI_API_KEY }}
           LOCI_BACKEND_URL: ${{ vars.LOCI_BACKEND_URL }}
