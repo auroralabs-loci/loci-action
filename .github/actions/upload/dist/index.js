@@ -20,6 +20,7 @@ class PullRequestData {
 
     this.actor = context.payload.sender?.login;
     this.actorType = context.payload.sender?.type;
+    this.actorID = context.payload.sender?.id;
     this.baseSHA = context.payload.pull_request.base?.sha;
     this.headSHA = context.payload.pull_request.head?.sha;
     this.baseREF = context.payload.pull_request.base?.ref;
@@ -36,6 +37,9 @@ class PullRequestData {
     return {
           owner: this.eventOwner,
           repo: this.eventRepo,
+          base: this.baseREF,
+          head: this.headREF,
+          actor: this.actor,
           head_sha: this.headSHA,
           pr_number: String(this.prNumber)
         };
@@ -39309,6 +39313,8 @@ async function run() {
     const iTarget = core.getInput("target", { required: true });
     const iProject = core.getInput("project", { required: true });
     const iBinaries = core.getInput("binaries", { required: true });
+    const iOptimize = core.getInput("optimize", { required: false }) === 'true';
+    const isAgentic = await utils.isAgentic();
     const binaryEntries = iBinaries
       .split("\n")
       .map((x) => x.trim())
@@ -39363,6 +39369,11 @@ async function run() {
       const pullReq = utils.getPullRequestData();
       const scmMeta = pullReq.getSCMMetaData();
       loci_args.push("--scm-meta", JSON.stringify(scmMeta));
+      if (iOptimize && isAgentic) {
+        loci_args.push("--optimize");
+      } else if (iOptimize && !isAgentic) {
+        core.warning("LOCI Code Agent optimization requested, but the provided company is not configured for agentic mode.");
+      }
     }
 
     await exec.exec("loci_api", loci_args, { silent: false });

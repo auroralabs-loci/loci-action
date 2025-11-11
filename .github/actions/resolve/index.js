@@ -1,8 +1,6 @@
 const fs = require("fs");
 const utils = require("../utils");
-
 const core = require("@actions/core");
-
 
 function resolveVersions(pullRequestData = null, providedBase = null, providedTarget = null) {
   if (providedBase) {
@@ -41,11 +39,6 @@ async function run() {
     const iWaitBase = core.getInput("wait-base", { required: false }) === 'true';
 
     const pullReq = utils.getPullRequestData();
-    const actor = process.env.GITHUB_ACTOR || "";
-    const isActorAutomated =
-      actor.endsWith("[bot]") ||
-      pullReq?.actorType === "Bot" ||
-      pullReq?.actorType === "App";
     
     const { base, target } = resolveVersions(pullReq, iBase, iTarget);
     core.startGroup("Trigger context");
@@ -56,7 +49,7 @@ async function run() {
     } else {
       core.info(`Commit: ${process.env.GITHUB_SHA || ""}`);
     }
-    core.info(`Actor: ${process.env.GITHUB_ACTOR || ""} (automated: ${isActorAutomated})`);
+    core.info(`Actor: ${process.env.GITHUB_ACTOR}`);
 
     if (base) {
       core.info("Comparison Analysis");

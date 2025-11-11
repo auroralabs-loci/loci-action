@@ -20,6 +20,7 @@ class PullRequestData {
 
     this.actor = context.payload.sender?.login;
     this.actorType = context.payload.sender?.type;
+    this.actorID = context.payload.sender?.id;
     this.baseSHA = context.payload.pull_request.base?.sha;
     this.headSHA = context.payload.pull_request.head?.sha;
     this.baseREF = context.payload.pull_request.base?.ref;
@@ -36,6 +37,9 @@ class PullRequestData {
     return {
           owner: this.eventOwner,
           repo: this.eventRepo,
+          base: this.baseREF,
+          head: this.headREF,
+          actor: this.actor,
           head_sha: this.headSHA,
           pr_number: String(this.prNumber)
         };

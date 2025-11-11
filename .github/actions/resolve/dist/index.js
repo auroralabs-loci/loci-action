@@ -20,6 +20,7 @@ class PullRequestData {
 
     this.actor = context.payload.sender?.login;
     this.actorType = context.payload.sender?.type;
+    this.actorID = context.payload.sender?.id;
     this.baseSHA = context.payload.pull_request.base?.sha;
     this.headSHA = context.payload.pull_request.head?.sha;
     this.baseREF = context.payload.pull_request.base?.ref;
@@ -36,6 +37,9 @@ class PullRequestData {
     return {
           owner: this.eventOwner,
           repo: this.eventRepo,
+          base: this.baseREF,
+          head: this.headREF,
+          actor: this.actor,
           head_sha: this.headSHA,
           pr_number: String(this.prNumber)
         };
@@ -32008,9 +32012,7 @@ module.exports = parseParams
 var __webpack_exports__ = {};
 const fs = __nccwpck_require__(9896);
 const utils = __nccwpck_require__(7843);
-
 const core = __nccwpck_require__(7484);
-
 
 function resolveVersions(pullRequestData = null, providedBase = null, providedTarget = null) {
   if (providedBase) {
@@ -32049,11 +32051,6 @@ async function run() {
     const iWaitBase = core.getInput("wait-base", { required: false }) === 'true';
 
     const pullReq = utils.getPullRequestData();
-    const actor = process.env.GITHUB_ACTOR || "";
-    const isActorAutomated =
-      actor.endsWith("[bot]") ||
-      pullReq?.actorType === "Bot" ||
-      pullReq?.actorType === "App";
     
     const { base, target } = resolveVersions(pullReq, iBase, iTarget);
     core.startGroup("Trigger context");
@@ -32064,7 +32061,7 @@ async function run() {
     } else {
       core.info(`Commit: ${process.env.GITHUB_SHA || ""}`);
     }
-    core.info(`Actor: ${process.env.GITHUB_ACTOR || ""} (automated: ${isActorAutomated})`);
+    core.info(`Actor: ${process.env.GITHUB_ACTOR}`);
 
     if (base) {
       core.info("Comparison Analysis");
