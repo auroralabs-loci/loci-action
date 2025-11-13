@@ -39332,10 +39332,10 @@ async function run() {
           console.warning(`No binary found for entry: ${entry}, skipping...`);
           continue;
         }
-        binaries.add(...matches.filter(f => isELFFile(f)));
+        matches.filter(f => isELFFile(f)).forEach(f => binaries.add(f));
       } else {
         if (fs.statSync(entry).isDirectory()) {
-          binaries.add(...fs.readdirSync(entry).map(f => path.join(entry, f)).filter(f => isELFFile(f)));
+          fs.readdirSync(entry).map(f => path.join(entry, f)).filter(f => isELFFile(f)).forEach(f => binaries.add(f));
         } else if (isELFFile(entry)) {
           binaries.add(entry);
         }
