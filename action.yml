@@ -42,7 +42,7 @@ inputs:
       Only relevant if a base input is provided and it has not yet been processed.
       Accepts 'true' or 'false'.
     required: false
-    default: 'false'
+    default: 'true'
   optimize:
     description: >
       Whether to use the LOCI Coding Agent to optimize uploaded binaries (only for mode: upload).

@@ -15,7 +15,7 @@ inputs:
   wait-base:
     description: Whether to wait for the base version processing to finish.
     required: false
-    default: 'false'
+    default: 'true'
 
 outputs:
   target: 
