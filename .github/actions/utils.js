@@ -121,7 +121,7 @@ async function fetchVersionStatusWithDetails(project, target, silent = true, all
       : (status === 0
         ? '🟄 Explore the in-depth analysis in'
         : '× Analysis unavailable at the moment. Check for more info in'),
-    label: 'LOCI Dashboard',
+    label: 'LOCI Inspector',
     url: url || ''
   };
 
