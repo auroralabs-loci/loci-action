@@ -40,7 +40,7 @@ async function run() {
 
     const pullReq = utils.getPullRequestData();
     
-    const { base, target } = resolveVersions(pullReq, iBase, iTarget);
+    const { base, target } = await resolveVersions(pullReq, iBase, iTarget);
     core.startGroup("Trigger context");
     core.info(`Event: ${process.env.GITHUB_EVENT_NAME || ""}`);
     if (pullReq) {
