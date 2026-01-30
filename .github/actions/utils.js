@@ -38,6 +38,16 @@ class PullRequestData {
           pr_number: String(this.prNumber)
         };
   }
+
+  async getMergeBaseSHA(token) {
+    const octokit = github.getOctokit(token);
+    const { data } = await octokit.rest.repos.compareCommitsWithBasehead({
+      owner: this.eventOwner,
+      repo: this.eventRepo,
+      basehead: `${this.baseSHA}...${this.headSHA}`,
+    });
+    return data.merge_base_commit.sha.substring(0, 7);
+  }
 }
 
 function isPullRequest() {

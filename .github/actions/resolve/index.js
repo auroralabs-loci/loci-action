@@ -2,7 +2,7 @@ const fs = require("fs");
 const utils = require("../utils");
 const core = require("@actions/core");
 
-function resolveVersions(pullRequestData = null, providedBase = null, providedTarget = null) {
+async function resolveVersions(pullRequestData = null, providedBase = null, providedTarget = null) {
   if (providedBase) {
     core.info(`Provided base version: ${providedBase}. Explicitly defined version takes priority over the detected merge base (if any).`);
   }
@@ -12,8 +12,8 @@ function resolveVersions(pullRequestData = null, providedBase = null, providedTa
   }
 
   if (pullRequestData) {
-    const base = providedBase ? providedBase : `${pullRequestData.baseREF}@${pullRequestData.baseSHA.substring(0, 7)}`;
-    const target = providedTarget ? providedTarget : `${pullRequestData.headREF}@${pullRequestData.headSHA.substring(0, 7)}`;
+    const base = providedBase || `${pullRequestData.baseREF}@${(await pullRequestData.getMergeBaseSHA()).substring(0, 7)}`;
+    const target = providedTarget || `${pullRequestData.headREF}@${pullRequestData.headSHA.substring(0, 7)}`;
     return { base, target };
   }
 
