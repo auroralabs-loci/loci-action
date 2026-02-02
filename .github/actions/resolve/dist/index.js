@@ -32034,7 +32034,7 @@ async function resolveVersions(pullRequestData = null, providedBase = null, prov
   }
 
   if (pullRequestData) {
-    const base = providedBase || `${pullRequestData.baseREF}@${(await pullRequestData.getMergeBaseSHA()).substring(0, 7)}`;
+    const base = providedBase || `${pullRequestData.baseREF}@${(await pullRequestData.getMergeBaseSHA(process.env.GITHUB_TOKEN)).substring(0, 7)}`;
     const target = providedTarget || `${pullRequestData.headREF}@${pullRequestData.headSHA.substring(0, 7)}`;
     return { base, target };
   }
