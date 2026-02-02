@@ -7,6 +7,10 @@ branding:
   color: "orange"
 
 inputs:
+  token:
+    description: GitHub token for API access (used for merge-base detection in PRs)
+    required: false
+    default: '${{ github.token }}'
   mode:
     description: Operation to perform. Can be 'upload' or 'summary'.
     required: true
@@ -85,12 +89,13 @@ runs:
         key: ${{ runner.os }}-pip
 
     - name: Install LOCI dependencies
-      uses: auroralabs-loci/loci-action/.github/actions/common@v1
+      uses: auroralabs-loci/loci-action/.github/actions/common@main
 
     - name: Resolve Version
       id: resolve
-      uses: auroralabs-loci/loci-action/.github/actions/resolve@v1
+      uses: auroralabs-loci/loci-action/.github/actions/resolve@main
       with:
+        token:     ${{ inputs.token }}
         project:   ${{ inputs.project }}
         target:    ${{ inputs.target }}
         base:      ${{ inputs.base }}
@@ -99,7 +104,7 @@ runs:
     - name: Upload LOCI artifacts (target=${{ steps.resolve.outputs.target }}, base=${{ steps.resolve.outputs.base || 'none' }})
       id: upload
       if: ${{ inputs.mode == 'upload' }}
-      uses: auroralabs-loci/loci-action/.github/actions/upload@v1
+      uses: auroralabs-loci/loci-action/.github/actions/upload@main
       with:
         project:   ${{ inputs.project }}
         binaries:  ${{ inputs.binaries }}
@@ -110,7 +115,7 @@ runs:
     - name: Generate LOCI summary
       id: summary
       if: ${{ inputs.mode == 'summary' }}
-      uses: auroralabs-loci/loci-action/.github/actions/summary@v1
+      uses: auroralabs-loci/loci-action/.github/actions/summary@main
       with:
         project:   ${{ inputs.project }}
         target:    ${{ steps.resolve.outputs.target }}

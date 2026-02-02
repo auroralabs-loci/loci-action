@@ -46,13 +46,33 @@ class PullRequestData {
   }
 
   async getMergeBaseSHA(token) {
-    const octokit = github.getOctokit(token);
-    const { data } = await octokit.rest.repos.compareCommitsWithBasehead({
-      owner: this.eventOwner,
-      repo: this.eventRepo,
-      basehead: `${this.baseSHA}...${this.headSHA}`,
-    });
-    return data.merge_base_commit.sha.substring(0, 7);
+    if (token) {
+      core.info('Resolving merge-base SHA via GitHub API.');
+      try {
+        const octokit = github.getOctokit(token);
+        const { data } = await octokit.rest.repos.compareCommitsWithBasehead({
+          owner: this.eventOwner,
+          repo: this.eventRepo,
+          basehead: `${this.baseSHA}...${this.headSHA}`,
+        });
+        return data.merge_base_commit.sha.substring(0, 7);
+      } catch (err) {
+        core.warning(`Failed to get merge-base via API: ${err.message}. Falling back to git.`);
+      }
+    }
+
+    try {
+      core.info('Resolving merge-base SHA via local git.');
+      const { execSync } = __nccwpck_require__(5317);
+      const mergeBase = execSync(`git merge-base ${this.baseSHA} ${this.headSHA}`, {
+        encoding: 'utf-8'
+      }).trim();
+      return mergeBase.substring(0, 7);
+    } catch (err) {
+      throw new Error(
+        `Failed to get merge-base SHA. Either provide a token or use 'actions/checkout' with 'fetch-depth: 0'. Error: ${err.message}`
+      );
+    }
   }
 }
 
@@ -32024,7 +32044,7 @@ const fs = __nccwpck_require__(9896);
 const utils = __nccwpck_require__(7843);
 const core = __nccwpck_require__(7484);
 
-async function resolveVersions(pullRequestData = null, providedBase = null, providedTarget = null) {
+async function resolveVersions(pullRequestData = null, providedBase = null, providedTarget = null, token = null) {
   if (providedBase) {
     core.info(`Provided base version: ${providedBase}. Explicitly defined version takes priority over the detected merge base (if any).`);
   }
@@ -32034,7 +32054,7 @@ async function resolveVersions(pullRequestData = null, providedBase = null, prov
   }
 
   if (pullRequestData) {
-    const base = providedBase || `${pullRequestData.baseREF}@${(await pullRequestData.getMergeBaseSHA(process.env.GITHUB_TOKEN)).substring(0, 7)}`;
+    const base = providedBase || `${pullRequestData.baseREF}@${(await pullRequestData.getMergeBaseSHA(token)).substring(0, 7)}`;
     const target = providedTarget || `${pullRequestData.headREF}@${pullRequestData.headSHA.substring(0, 7)}`;
     return { base, target };
   }
@@ -32055,6 +32075,7 @@ async function resolveVersions(pullRequestData = null, providedBase = null, prov
 
 async function run() {
   try {
+    const iToken = core.getInput("token", { required: false });
     const iProject = core.getInput("project", { required: true });
     const iTarget = core.getInput("target", { required: false });
     const iBase = core.getInput("base", { required: false });
@@ -32062,7 +32083,7 @@ async function run() {
 
     const pullReq = utils.getPullRequestData();
     
-    const { base, target } = await resolveVersions(pullReq, iBase, iTarget);
+    const { base, target } = await resolveVersions(pullReq, iBase, iTarget, iToken);
     core.startGroup("Trigger context");
     core.info(`Event: ${process.env.GITHUB_EVENT_NAME || ""}`);
     if (pullReq) {

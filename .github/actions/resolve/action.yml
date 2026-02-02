@@ -3,6 +3,10 @@ description: Action that resolves project's version
 author: AuroraLabs
 
 inputs:
+  token:
+    description: GitHub token for API access
+    required: false
+    default: '${{ github.token }}'
   project:
     description: Project name.
     required: true

@@ -46,13 +46,33 @@ class PullRequestData {
   }
 
   async getMergeBaseSHA(token) {
-    const octokit = github.getOctokit(token);
-    const { data } = await octokit.rest.repos.compareCommitsWithBasehead({
-      owner: this.eventOwner,
-      repo: this.eventRepo,
-      basehead: `${this.baseSHA}...${this.headSHA}`,
-    });
-    return data.merge_base_commit.sha.substring(0, 7);
+    if (token) {
+      core.info('Resolving merge-base SHA via GitHub API.');
+      try {
+        const octokit = github.getOctokit(token);
+        const { data } = await octokit.rest.repos.compareCommitsWithBasehead({
+          owner: this.eventOwner,
+          repo: this.eventRepo,
+          basehead: `${this.baseSHA}...${this.headSHA}`,
+        });
+        return data.merge_base_commit.sha.substring(0, 7);
+      } catch (err) {
+        core.warning(`Failed to get merge-base via API: ${err.message}. Falling back to git.`);
+      }
+    }
+
+    try {
+      core.info('Resolving merge-base SHA via local git.');
+      const { execSync } = __nccwpck_require__(5317);
+      const mergeBase = execSync(`git merge-base ${this.baseSHA} ${this.headSHA}`, {
+        encoding: 'utf-8'
+      }).trim();
+      return mergeBase.substring(0, 7);
+    } catch (err) {
+      throw new Error(
+        `Failed to get merge-base SHA. Either provide a token or use 'actions/checkout' with 'fetch-depth: 0'. Error: ${err.message}`
+      );
+    }
   }
 }
 

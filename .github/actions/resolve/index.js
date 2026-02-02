@@ -2,7 +2,7 @@ const fs = require("fs");
 const utils = require("../utils");
 const core = require("@actions/core");
 
-async function resolveVersions(pullRequestData = null, providedBase = null, providedTarget = null) {
+async function resolveVersions(pullRequestData = null, providedBase = null, providedTarget = null, token = null) {
   if (providedBase) {
     core.info(`Provided base version: ${providedBase}. Explicitly defined version takes priority over the detected merge base (if any).`);
   }
@@ -12,7 +12,7 @@ async function resolveVersions(pullRequestData = null, providedBase = null, prov
   }
 
   if (pullRequestData) {
-    const base = providedBase || `${pullRequestData.baseREF}@${(await pullRequestData.getMergeBaseSHA(process.env.GITHUB_TOKEN)).substring(0, 7)}`;
+    const base = providedBase || `${pullRequestData.baseREF}@${(await pullRequestData.getMergeBaseSHA(token)).substring(0, 7)}`;
     const target = providedTarget || `${pullRequestData.headREF}@${pullRequestData.headSHA.substring(0, 7)}`;
     return { base, target };
   }
@@ -33,6 +33,7 @@ async function resolveVersions(pullRequestData = null, providedBase = null, prov
 
 async function run() {
   try {
+    const iToken = core.getInput("token", { required: false });
     const iProject = core.getInput("project", { required: true });
     const iTarget = core.getInput("target", { required: false });
     const iBase = core.getInput("base", { required: false });
@@ -40,7 +41,7 @@ async function run() {
 
     const pullReq = utils.getPullRequestData();
     
-    const { base, target } = await resolveVersions(pullReq, iBase, iTarget);
+    const { base, target } = await resolveVersions(pullReq, iBase, iTarget, iToken);
     core.startGroup("Trigger context");
     core.info(`Event: ${process.env.GITHUB_EVENT_NAME || ""}`);
     if (pullReq) {
