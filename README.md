@@ -139,3 +139,9 @@ jobs:
 - GitHub App installed →
   - Posts LOCI Agent Summary Report as a PR comment (Agentic only).
   - Enables Performance Review Check Run (pass/fail).
+
+## Azure DevOps
+
+LOCI is also available as an Azure DevOps extension. See
+[`azure/README.md`](./azure/README.md) for setup and usage. v1 ships
+`mode: upload` only; summary-mode rendering is planned for a future release.
