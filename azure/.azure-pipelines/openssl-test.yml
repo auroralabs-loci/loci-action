@@ -1,0 +1,68 @@
+# Reference smoke-test pipeline for the LOCI Azure DevOps task.
+#
+# This file is committed for documentation only — it is not auto-discovered by
+# Azure DevOps. Wire it up against an openssl fork to exercise both push and
+# PR triggers end-to-end against a privately-published build of the extension.
+#
+# Pipeline variables / variable groups required:
+#   LOCI_DEV_BACKEND_URL          (variable, plain text)
+#   LOCI_DEV_AGENTIC_API_KEY      (variable, secret)
+#
+# At the job level, ensure 'Allow scripts to access the OAuth token' is enabled
+# (or pass System.AccessToken explicitly via env on the LociTask step, as below).
+
+trigger:
+  branches:
+    include: [main]
+pr:
+  branches:
+    include: [main]
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  LOCI_PROJECT: openssl-test
+
+steps:
+  - checkout: self
+    fetchDepth: 0
+    persistCredentials: true
+
+  - script: |
+      sudo apt-get -y update
+      sudo apt-get -y install gcc-aarch64-linux-gnu g++-aarch64-linux-gnu \
+                              build-essential cmake git ninja-build python3-minimal
+    displayName: 'Prepare environment'
+
+  - script: |
+      CC=gcc CXX=g++ ./Configure linux-aarch64 \
+        --cross-compile-prefix=aarch64-linux-gnu- -g -fno-stack-protector
+      make -j
+      mv apps/openssl openssl
+    displayName: 'Build sample'
+
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '3.12'
+    displayName: 'Setup Python 3.12'
+
+  - task: LociTask@1
+    displayName: 'LOCI Upload'
+    inputs:
+      mode: upload
+      project: $(LOCI_PROJECT)
+      binaries: |
+        openssl
+        libcrypto.so
+        libcrypto.so.3
+        libssl.so
+        libssl.so.3
+    env:
+      LOCI_BACKEND_URL: $(LOCI_DEV_BACKEND_URL)
+      LOCI_API_KEY: $(LOCI_DEV_AGENTIC_API_KEY)
+      # Required for PR builds so utils.getMergeBaseSHA can use the
+      # azure-devops-node-api path; without it we fall back to local
+      # 'git merge-base HEAD^1 HEAD^2' (which still works because
+      # Azure checks out the synthetic merge commit by default).
+      SYSTEM_ACCESSTOKEN: $(System.AccessToken)
