@@ -117,7 +117,7 @@ async function run() {
     await writeRunSummary(details);
     console.log(`${details.message} ${details.label}: ${details.url}`);
   } catch (err) {
-    tl.setResult(tl.TaskResult.Failed, `Upload failed: ${err.message}. Terminating analysis.`);
+    throw new Error(`Upload failed: ${err.message}. Terminating analysis.`);
   }
 }
 

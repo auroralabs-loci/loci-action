@@ -5,20 +5,20 @@ const tl = require("azure-pipelines-task-lib/task");
 async function run() {
   try {
     console.log("##[group]Verify python environment");
+    // ignoreReturnCode: true so we can inspect the exit code ourselves
+    // without tl.exec throwing on a deliberate non-zero from sys.exit().
     const pythonCheck = await tl.exec(
       "python",
       ["-c", "import sys; sys.exit(0 if sys.version_info >= (3, 12) else 1)"],
-      { silent: true }
+      { silent: true, ignoreReturnCode: true, failOnStdErr: false }
     );
     if (pythonCheck !== 0) {
-      tl.setResult(
-        tl.TaskResult.Failed,
+      throw new Error(
         "Python 3.12+ not found on PATH. Add UsePythonVersion@0 before LociTask:\n" +
         "  - task: UsePythonVersion@0\n" +
         "    inputs:\n" +
         "      versionSpec: '3.12'"
       );
-      return;
     }
     await tl.exec("python", ["--version"]);
     console.log("##[endgroup]");
@@ -37,7 +37,7 @@ async function run() {
 
     console.log("Python environment ready");
   } catch (err) {
-    tl.setResult(tl.TaskResult.Failed, `Failed in common: ${err.message}`);
+    throw new Error(`Failed in common: ${err.message}`);
   }
 }
 

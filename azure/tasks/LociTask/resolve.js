@@ -92,7 +92,7 @@ async function run() {
     tl.setVariable("LOCI_TARGET", target);
     tl.setVariable("LOCI_BASE", base);
   } catch (err) {
-    tl.setResult(tl.TaskResult.Failed, `Resolving versions failed: ${err.message}`);
+    throw new Error(`Resolving versions failed: ${err.message}`);
   }
 }
 

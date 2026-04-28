@@ -6,7 +6,7 @@
     "build:summary": "ncc build .github/actions/summary/index.js -o .github/actions/summary/dist",
     "build": "npm run build:common && npm run build:resolve && npm run build:upload && npm run build:summary",
     "build:azure": "ncc build azure/tasks/LociTask/index.js -o azure/tasks/LociTask/dist",
-    "pack:azure": "tfx extension create --manifest-globs azure/vss-extension.json --output-path build/"
+    "pack:azure": "tfx extension create --root azure --manifest-globs vss-extension.json --output-path build/"
   },
   "dependencies": {
     "@actions/core": "^1.11.1",
