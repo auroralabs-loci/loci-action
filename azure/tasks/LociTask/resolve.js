@@ -91,6 +91,8 @@ async function run() {
 
     tl.setVariable("LOCI_TARGET", target);
     tl.setVariable("LOCI_BASE", base);
+
+    return { target, base };
   } catch (err) {
     throw new Error(`Resolving versions failed: ${err.message}`);
   }

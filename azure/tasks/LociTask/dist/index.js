@@ -148,6 +148,8 @@ async function run() {
 
     tl.setVariable("LOCI_TARGET", target);
     tl.setVariable("LOCI_BASE", base);
+
+    return { target, base };
   } catch (err) {
     throw new Error(`Resolving versions failed: ${err.message}`);
   }
@@ -202,13 +204,19 @@ function isELFFile(file) {
   }
 }
 
-async function run() {
+async function run({ target, base } = {}) {
   try {
-    const iBase = tl.getInput("base", false);
-    const iTarget = tl.getInput("target", true);
+    // target / base are resolved upstream by resolve.js and passed in by the
+    // dispatcher; project / binaries / optimize are still task inputs the
+    // customer set on the LociTask step.
+    const iTarget = target;
+    const iBase = base;
     const iProject = tl.getInput("project", true);
     const iBinaries = tl.getInput("binaries", true);
     const iOptimize = tl.getBoolInput("optimize", false);
+    if (!iTarget) {
+      throw new Error("target was not resolved by the resolve step.");
+    }
     const isAgentic = await utils.isAgentic();
     const binaryEntries = iBinaries
       .split(/\r?\n/)
@@ -97095,8 +97103,8 @@ const tl = __nccwpck_require__(358);
     }
 
     await (__nccwpck_require__(6345).run)();
-    await (__nccwpck_require__(5570).run)();
-    await (__nccwpck_require__(2949).run)();
+    const resolved = await (__nccwpck_require__(5570).run)();
+    await (__nccwpck_require__(2949).run)(resolved);
   } catch (err) {
     tl.setResult(tl.TaskResult.Failed, err.message);
   }

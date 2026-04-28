@@ -21,8 +21,8 @@ const tl = require("azure-pipelines-task-lib/task");
     }
 
     await require("./common").run();
-    await require("./resolve").run();
-    await require("./upload").run();
+    const resolved = await require("./resolve").run();
+    await require("./upload").run(resolved);
   } catch (err) {
     tl.setResult(tl.TaskResult.Failed, err.message);
   }
