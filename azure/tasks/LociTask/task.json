@@ -1,0 +1,66 @@
+{
+  "id": "1ec5daab-c2d9-413c-8ff1-362c02c5234f",
+  "name": "LociTask",
+  "friendlyName": "LOCI Action",
+  "description": "Upload binaries and get LOCI performance insights directly in Azure Pipelines",
+  "author": "AuroraLabs",
+  "category": "Build",
+  "version": { "Major": 1, "Minor": 0, "Patch": 0 },
+  "instanceNameFormat": "LOCI $(mode)",
+  "inputs": [
+    {
+      "name": "mode",
+      "type": "pickList",
+      "label": "Mode",
+      "required": true,
+      "defaultValue": "upload",
+      "options": { "upload": "Upload" },
+      "helpMarkDown": "Operation to perform. v1 supports 'upload' only; 'summary' is planned for a future release."
+    },
+    {
+      "name": "project",
+      "type": "string",
+      "label": "Project name",
+      "required": true,
+      "helpMarkDown": "LOCI project name to tag analysis results."
+    },
+    {
+      "name": "binaries",
+      "type": "multiLine",
+      "label": "Binaries",
+      "required": true,
+      "helpMarkDown": "Newline-separated list of binary paths, glob patterns, or a directory."
+    },
+    {
+      "name": "target",
+      "type": "string",
+      "label": "Target version",
+      "required": false,
+      "helpMarkDown": "Project version label for this run. Auto-resolves to '<branch>@<shortSHA>' if not set."
+    },
+    {
+      "name": "base",
+      "type": "string",
+      "label": "Base version",
+      "required": false,
+      "helpMarkDown": "Optional base version to compare 'target' against. Auto-resolves to PR merge base on PR builds."
+    },
+    {
+      "name": "waitBase",
+      "type": "boolean",
+      "label": "Wait for base",
+      "defaultValue": "true",
+      "helpMarkDown": "Whether to wait for the base version's processing to finish."
+    },
+    {
+      "name": "optimize",
+      "type": "boolean",
+      "label": "Optimize",
+      "defaultValue": "false",
+      "helpMarkDown": "Whether to use the LOCI Coding Agent to optimize uploaded binaries (only for mode: upload, agentic accounts)."
+    }
+  ],
+  "execution": {
+    "Node20_1": { "target": "dist/index.js" }
+  }
+}

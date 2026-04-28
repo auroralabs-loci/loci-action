@@ -1,0 +1,26 @@
+{
+  "manifestVersion": 1,
+  "id": "loci-action",
+  "publisher": "aurora-loci-dev",
+  "version": "1.0.0",
+  "name": "LOCI for Azure DevOps",
+  "description": "Line of Code Insights — performance analysis for Azure Pipelines",
+  "categories": ["Azure Pipelines"],
+  "targets": [
+    { "id": "Microsoft.VisualStudio.Services" }
+  ],
+  "icons": { "default": "images/extension-icon.png" },
+  "galleryFlags": ["Private", "Preview"],
+  "files": [
+    { "path": "tasks/LociTask" },
+    { "path": "images", "addressable": true }
+  ],
+  "contributions": [
+    {
+      "id": "loci-task",
+      "type": "ms.vss-distributed-task.task",
+      "targets": ["ms.vss-distributed-task.tasks"],
+      "properties": { "name": "tasks/LociTask" }
+    }
+  ]
+}

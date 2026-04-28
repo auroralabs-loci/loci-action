@@ -4,15 +4,21 @@
     "build:resolve": "ncc build .github/actions/resolve/index.js -o .github/actions/resolve/dist",
     "build:upload": "ncc build .github/actions/upload/index.js -o .github/actions/upload/dist",
     "build:summary": "ncc build .github/actions/summary/index.js -o .github/actions/summary/dist",
-    "build": "npm run build:common && npm run build:resolve && npm run build:upload && npm run build:summary"
+    "build": "npm run build:common && npm run build:resolve && npm run build:upload && npm run build:summary",
+    "build:azure": "ncc build azure/tasks/LociTask/index.js -o azure/tasks/LociTask/dist",
+    "pack:azure": "tfx extension create --manifest-globs azure/vss-extension.json --output-path build/"
   },
   "dependencies": {
     "@actions/core": "^1.11.1",
     "@actions/exec": "^1.1.1",
     "@actions/github": "^6.0.1",
-    "fast-glob": "^3.3.3"
+    "azure-devops-node-api": "^14.0.1",
+    "azure-pipelines-task-lib": "^4.13.0",
+    "fast-glob": "^3.3.3",
+    "tar": "^7.0.0"
   },
   "devDependencies": {
-    "@vercel/ncc": "^0.38.3"
+    "@vercel/ncc": "^0.38.3",
+    "tfx-cli": "^0.17.0"
   }
 }
