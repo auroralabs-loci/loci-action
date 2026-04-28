@@ -97085,15 +97085,6 @@ const tl = __nccwpck_require__(358);
 (async () => {
   try {
     const mode = tl.getInput("mode", true);
-    if (mode === "summary") {
-      tl.setResult(
-        tl.TaskResult.Failed,
-        "mode 'summary' is not yet supported on Azure DevOps. " +
-        "View results in the LOCI Inspector dashboard via the link printed by mode 'upload'. " +
-        "Summary mode is planned for a future release."
-      );
-      return;
-    }
     if (mode !== "upload") {
       tl.setResult(
         tl.TaskResult.Failed,

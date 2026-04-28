@@ -122,16 +122,14 @@ where `LOCI_Upload` is the step's `name:`) and as plain pipeline variables
 
 ### Where to view results
 
-In v1, the Azure task only runs `mode: upload`. To view function insights, the
-Agent Summary Report, and other LOCI analysis output:
+The Azure task uploads binaries; analysis output lives on the LOCI Inspector
+dashboard.
 
 1. Click the **LOCI Inspector** link the upload step writes to the build's
    Summary tab and to its log output.
-2. The Inspector dashboard renders the full report including comparison
+2. The Inspector dashboard renders the full report including function
+   insights, the Agent Summary Report (in agentic mode), and comparison
    analysis when a base version is set (auto-detected on PR builds).
-
-Summary-mode rendering inside the build's Summary tab itself (the equivalent
-of `mode: summary` on the GitHub side) is planned for a future release.
 
 ### Feature matrix (Azure v1 vs. GitHub)
 
@@ -139,8 +137,6 @@ of `mode: summary` on the GitHub side) is planned for a future release.
 |----------------------------|------------------------------------------|---------------|
 | Upload of binaries         | ✅ Yes                                  | ✅ Yes |
 | `--scm-meta` on PR builds  | ✅ Yes (Azure Repos source provider)    | ✅ Yes |
-| Function Insights in build summary | ❌ Not yet (use Inspector dashboard) | ✅ Yes via `mode: summary` |
-| Agent Summary Report in build summary | ❌ Not yet (use Inspector dashboard) | ✅ Yes via `mode: summary` (agentic) |
 | LOCI optimize on PR builds | ✅ Yes (agentic mode)                   | ✅ Yes |
 | Inspector dashboard link   | ✅ Yes (logged + Summary tab)           | ✅ Yes |
 | Windows agents             | ❌ Not yet                              | n/a |
@@ -157,10 +153,6 @@ Either:
   `LociTask@1` step (preferred — uses the Azure DevOps API).
 - Or set `fetchDepth: 0` on `checkout: self` (so the local `git merge-base`
   fallback has enough history).
-
-**`mode 'summary' is not yet supported on Azure DevOps.`**
-Use `mode: upload` and follow the Inspector dashboard link the task prints.
-Summary mode is planned for a future release.
 
 **Source provider is GitHub or Bitbucket**
 The `--scm-meta` flow uses the Azure DevOps git API for PR context. Pipelines

@@ -15,7 +15,7 @@
       "required": true,
       "defaultValue": "upload",
       "options": { "upload": "Upload" },
-      "helpMarkDown": "Operation to perform. v1 supports 'upload' only; 'summary' is planned for a future release."
+      "helpMarkDown": "Operation to perform. Currently 'upload' only."
     },
     {
       "name": "project",
