@@ -18,9 +18,6 @@ GitHub Action.
 - `mode: upload` — uploads binaries to LOCI. A completed upload is enough for
   the LOCI Inspector dashboard to show analysis results, and for the LOCI
   backend to drive any agentic workflows you have configured.
-- `mode: summary` — **not yet supported on Azure**. View results in the LOCI
-  Inspector dashboard via the link the upload task prints. Summary mode is
-  planned for a future release.
 - Linux agents only (`vmImage: 'ubuntu-latest'`). Windows agents are out of
   scope for v1.
 - Source provider: Azure Repos Git is the supported configuration. Pipelines
