@@ -42,7 +42,9 @@ class PullRequestData {
           head: this.headREF,
           actor: this.actor,
           head_sha: this.headSHA,
-          pr_number: String(this.prNumber)
+          pr_number: String(this.prNumber),
+          provider: "azure",
+          ado_project: this.eventOwner
         };
   }
 

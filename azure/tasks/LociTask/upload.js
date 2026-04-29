@@ -52,6 +52,15 @@ async function run({ target, base } = {}) {
     if (!iTarget) {
       throw new Error("target was not resolved by the resolve step.");
     }
+
+    // loci_api 0.2.39 reads LOCI_SCM_TOKEN at module load and sends it as
+    // X-SCM-Token. The backend's AzureProvider uses this token for the
+    // Azure DevOps API calls it makes after the upload (PR comments, check
+    // runs). System.AccessToken is the natural source on Azure Pipelines.
+    const scmToken = tl.getVariable("System.AccessToken");
+    if (scmToken) {
+      process.env.LOCI_SCM_TOKEN = scmToken;
+    }
     const isAgentic = await utils.isAgentic();
     const binaryEntries = iBinaries
       .split(/\r?\n/)

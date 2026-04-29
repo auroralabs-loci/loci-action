@@ -173,15 +173,15 @@ const tl = __nccwpck_require__(358);
 
 
 async function writeRunSummary(details) {
-  const summaryPath = path.join(process.cwd(), "loci-upload-summary.md");
+  const summaryPath = __nccwpck_require__.ab + "loci-upload-summary.md";
   const md = [
     "# LOCI Upload Status",
     "",
     `${details.message} [${details.label}](${details.url})`,
     ""
   ].join("\n");
-  fs.writeFileSync(summaryPath, md);
-  tl.uploadSummary(summaryPath);
+  fs.writeFileSync(__nccwpck_require__.ab + "loci-upload-summary.md", md);
+  tl.uploadSummary(__nccwpck_require__.ab + "loci-upload-summary.md");
 }
 
 function isELFFile(file) {
@@ -217,6 +217,15 @@ async function run({ target, base } = {}) {
     if (!iTarget) {
       throw new Error("target was not resolved by the resolve step.");
     }
+
+    // loci_api 0.2.39 reads LOCI_SCM_TOKEN at module load and sends it as
+    // X-SCM-Token. The backend's AzureProvider uses this token for the
+    // Azure DevOps API calls it makes after the upload (PR comments, check
+    // runs). System.AccessToken is the natural source on Azure Pipelines.
+    const scmToken = tl.getVariable("System.AccessToken");
+    if (scmToken) {
+      process.env.LOCI_SCM_TOKEN = scmToken;
+    }
     const isAgentic = await utils.isAgentic();
     const binaryEntries = iBinaries
       .split(/\r?\n/)
@@ -249,9 +258,9 @@ async function run({ target, base } = {}) {
     console.log("##[endgroup]");
 
     console.log("##[group]Archive binaries");
-    const binsArchive = path.join(process.cwd(), "binaries.tar.gz");
-    await tar.create({ gzip: true, file: binsArchive }, Array.from(binaries));
-    const stats = fs.statSync(binsArchive);
+    const binsArchive = __nccwpck_require__.ab + "binaries.tar.gz";
+    await tar.create({ gzip: true, file: __nccwpck_require__.ab + "binaries.tar.gz" }, Array.from(binaries));
+    const stats = fs.statSync(__nccwpck_require__.ab + "binaries.tar.gz");
     console.log(`Archive: ${binsArchive} (${(stats.size / 1024 / 1024).toFixed(1)} MB)`);
     console.log("Binaries archived");
     console.log("##[endgroup]");
@@ -260,7 +269,7 @@ async function run({ target, base } = {}) {
     console.log(`Project: ${iProject}`);
     console.log(`Target: ${iTarget}`);
 
-    let loci_args = ["upload", binsArchive, iProject, iTarget, "--no-wait"];
+    let loci_args = ["upload", __nccwpck_require__.ab + "binaries.tar.gz", iProject, iTarget, "--no-wait"];
     if (iBase) {
       console.log(`Base: ${iBase}`);
       if (iBase == iTarget) {
@@ -344,7 +353,9 @@ class PullRequestData {
           head: this.headREF,
           actor: this.actor,
           head_sha: this.headSHA,
-          pr_number: String(this.prNumber)
+          pr_number: String(this.prNumber),
+          provider: "azure",
+          ado_project: this.eventOwner
         };
   }
 
