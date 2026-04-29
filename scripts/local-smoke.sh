@@ -87,12 +87,22 @@ case "$MODE" in
     export SYSTEM_PULLREQUEST_SOURCECOMMITID="${SYSTEM_PULLREQUEST_SOURCECOMMITID:-fedcba0987654321fedcba0987654321fedcba09}"
     export SYSTEM_PULLREQUEST_TARGETBRANCH="${SYSTEM_PULLREQUEST_TARGETBRANCH:-refs/heads/main}"
     export SYSTEM_PULLREQUEST_SOURCEBRANCH="${SYSTEM_PULLREQUEST_SOURCEBRANCH:-refs/heads/feature/smoke-test}"
+    # Stand-in for the build's System.AccessToken. The task forwards this
+    # to loci_api as LOCI_SCM_TOKEN; the backend's AzureProvider uses it
+    # for downstream Azure DevOps API calls. Override SYSTEM_ACCESSTOKEN
+    # in the env to inject a real PAT for end-to-end AzureProvider
+    # observation; the default empty value still validates upload + the
+    # new scm-meta shape (AzureProvider's API calls just no-op).
+    export SYSTEM_ACCESSTOKEN="${SYSTEM_ACCESSTOKEN:-}"
     # Pass an explicit base so resolve.js doesn't try to resolve a
-    # merge-base against the backend (which would also need the base
-    # version to already exist there). Override INPUT_BASE='' to
-    # exercise the merge-base path instead — needs a git repo with a
-    # synthetic merge commit at HEAD.
-    export INPUT_BASE="${INPUT_BASE:-main@deadbee}"
+    # merge-base against the backend. The default matches the version
+    # the push-mode smoke creates (BUILD_SOURCEVERSION=abcdef1234... →
+    # main@abcdef1), so 'push' followed by 'pr' is self-consistent —
+    # push creates the base, pr compares against it. Override
+    # INPUT_BASE to use a different existing version, or set
+    # INPUT_BASE='' to exercise the merge-base path (needs a git repo
+    # with a synthetic merge commit at HEAD).
+    export INPUT_BASE="${INPUT_BASE:-main@abcdef1}"
     ;;
 esac
 

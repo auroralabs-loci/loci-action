@@ -1,2 +1,9 @@
 node_modules
 build/
+
+# Local-smoke runtime artifacts created in process.cwd() by the task
+# (binaries.tar.gz from tar.create, data.json from loci_api --output,
+# loci-upload-summary.md from tl.uploadSummary).
+binaries.tar.gz
+data.json
+loci-upload-summary.md
