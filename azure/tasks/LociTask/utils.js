@@ -11,6 +11,29 @@ function stripRefsHeads(ref) {
   return ref.replace(/^refs\/heads\//, "");
 }
 
+// Pull the Azure DevOps organization name out of the build's collection URI.
+// Modern form: https://dev.azure.com/<org>/  -> "<org>"
+// Legacy form: https://<org>.visualstudio.com/  -> "<org>"
+// Backend's AzureProvider uses scm.owner verbatim to build the API URL
+// (https://dev.azure.com/${scm.owner}), so this MUST be the org, not the
+// team project — they're different on Azure DevOps.
+function extractOrgFromCollectionUri(uri) {
+  if (!uri) return undefined;
+  try {
+    const url = new URL(uri);
+    if (url.hostname === "dev.azure.com") {
+      const seg = url.pathname.split("/").filter(Boolean)[0];
+      return seg || undefined;
+    }
+    if (url.hostname.endsWith(".visualstudio.com")) {
+      return url.hostname.split(".")[0];
+    }
+    return undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 class PullRequestData {
   constructor() {
     if (!isPullRequest()) {
@@ -25,7 +48,8 @@ class PullRequestData {
     this.baseREF = stripRefsHeads(tl.getVariable("System.PullRequest.TargetBranch"));
     this.headREF = stripRefsHeads(tl.getVariable("System.PullRequest.SourceBranch"));
     this.prNumber = tl.getVariable("System.PullRequest.PullRequestId");
-    this.eventOwner = tl.getVariable("System.TeamProject");
+    this.adoProject = tl.getVariable("System.TeamProject");
+    this.eventOwner = extractOrgFromCollectionUri(tl.getVariable("System.CollectionUri")) || this.adoProject;
     this.eventRepo = tl.getVariable("Build.Repository.Name");
     this.eventRepoFull = this.eventOwner && this.eventRepo
       ? `${this.eventOwner}/${this.eventRepo}`
@@ -44,7 +68,7 @@ class PullRequestData {
           head_sha: this.headSHA,
           pr_number: String(this.prNumber),
           provider: "azure",
-          ado_project: this.eventOwner
+          ado_project: this.adoProject
         };
   }
 

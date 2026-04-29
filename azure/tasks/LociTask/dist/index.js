@@ -173,15 +173,15 @@ const tl = __nccwpck_require__(358);
 
 
 async function writeRunSummary(details) {
-  const summaryPath = __nccwpck_require__.ab + "loci-upload-summary.md";
+  const summaryPath = path.join(process.cwd(), "loci-upload-summary.md");
   const md = [
     "# LOCI Upload Status",
     "",
     `${details.message} [${details.label}](${details.url})`,
     ""
   ].join("\n");
-  fs.writeFileSync(__nccwpck_require__.ab + "loci-upload-summary.md", md);
-  tl.uploadSummary(__nccwpck_require__.ab + "loci-upload-summary.md");
+  fs.writeFileSync(summaryPath, md);
+  tl.uploadSummary(summaryPath);
 }
 
 function isELFFile(file) {
@@ -258,9 +258,9 @@ async function run({ target, base } = {}) {
     console.log("##[endgroup]");
 
     console.log("##[group]Archive binaries");
-    const binsArchive = __nccwpck_require__.ab + "binaries.tar.gz";
-    await tar.create({ gzip: true, file: __nccwpck_require__.ab + "binaries.tar.gz" }, Array.from(binaries));
-    const stats = fs.statSync(__nccwpck_require__.ab + "binaries.tar.gz");
+    const binsArchive = path.join(process.cwd(), "binaries.tar.gz");
+    await tar.create({ gzip: true, file: binsArchive }, Array.from(binaries));
+    const stats = fs.statSync(binsArchive);
     console.log(`Archive: ${binsArchive} (${(stats.size / 1024 / 1024).toFixed(1)} MB)`);
     console.log("Binaries archived");
     console.log("##[endgroup]");
@@ -269,7 +269,7 @@ async function run({ target, base } = {}) {
     console.log(`Project: ${iProject}`);
     console.log(`Target: ${iTarget}`);
 
-    let loci_args = ["upload", __nccwpck_require__.ab + "binaries.tar.gz", iProject, iTarget, "--no-wait"];
+    let loci_args = ["upload", binsArchive, iProject, iTarget, "--no-wait"];
     if (iBase) {
       console.log(`Base: ${iBase}`);
       if (iBase == iTarget) {
@@ -322,6 +322,29 @@ function stripRefsHeads(ref) {
   return ref.replace(/^refs\/heads\//, "");
 }
 
+// Pull the Azure DevOps organization name out of the build's collection URI.
+// Modern form: https://dev.azure.com/<org>/  -> "<org>"
+// Legacy form: https://<org>.visualstudio.com/  -> "<org>"
+// Backend's AzureProvider uses scm.owner verbatim to build the API URL
+// (https://dev.azure.com/${scm.owner}), so this MUST be the org, not the
+// team project — they're different on Azure DevOps.
+function extractOrgFromCollectionUri(uri) {
+  if (!uri) return undefined;
+  try {
+    const url = new URL(uri);
+    if (url.hostname === "dev.azure.com") {
+      const seg = url.pathname.split("/").filter(Boolean)[0];
+      return seg || undefined;
+    }
+    if (url.hostname.endsWith(".visualstudio.com")) {
+      return url.hostname.split(".")[0];
+    }
+    return undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 class PullRequestData {
   constructor() {
     if (!isPullRequest()) {
@@ -336,7 +359,8 @@ class PullRequestData {
     this.baseREF = stripRefsHeads(tl.getVariable("System.PullRequest.TargetBranch"));
     this.headREF = stripRefsHeads(tl.getVariable("System.PullRequest.SourceBranch"));
     this.prNumber = tl.getVariable("System.PullRequest.PullRequestId");
-    this.eventOwner = tl.getVariable("System.TeamProject");
+    this.adoProject = tl.getVariable("System.TeamProject");
+    this.eventOwner = extractOrgFromCollectionUri(tl.getVariable("System.CollectionUri")) || this.adoProject;
     this.eventRepo = tl.getVariable("Build.Repository.Name");
     this.eventRepoFull = this.eventOwner && this.eventRepo
       ? `${this.eventOwner}/${this.eventRepo}`
@@ -355,7 +379,7 @@ class PullRequestData {
           head_sha: this.headSHA,
           pr_number: String(this.prNumber),
           provider: "azure",
-          ado_project: this.eventOwner
+          ado_project: this.adoProject
         };
   }
 
