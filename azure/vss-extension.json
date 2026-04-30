@@ -2,7 +2,7 @@
   "manifestVersion": 1,
   "id": "loci-action",
   "publisher": "AuroraLabs",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "name": "LOCI for Azure DevOps",
   "description": "Line of Code Insights — performance analysis for Azure Pipelines",
   "categories": ["Azure Pipelines"],
