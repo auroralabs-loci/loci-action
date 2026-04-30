@@ -5,7 +5,7 @@
   "description": "Upload binaries and get LOCI performance insights directly in Azure Pipelines",
   "author": "AuroraLabs",
   "category": "Build",
-  "version": { "Major": 1, "Minor": 0, "Patch": 0 },
+  "version": { "Major": 1, "Minor": 0, "Patch": 2 },
   "instanceNameFormat": "LOCI $(mode)",
   "inputs": [
     {
