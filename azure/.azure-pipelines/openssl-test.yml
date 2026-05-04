@@ -7,9 +7,9 @@
 # Pipeline variables / variable groups required:
 #   LOCI_DEV_BACKEND_URL          (variable, plain text)
 #   LOCI_DEV_AGENTIC_API_KEY      (variable, secret)
-#
-# At the job level, ensure 'Allow scripts to access the OAuth token' is enabled
-# (or pass System.AccessToken explicitly via env on the LociTask step, as below).
+#   LOCI_AZURE_PAT                (variable, secret) — long-lived Azure DevOps
+#                                 PAT with Code + Pull Request Threads scopes,
+#                                 used by LOCI for SCM API calls.
 
 trigger:
   branches:
@@ -58,11 +58,7 @@ steps:
         libcrypto.so.3
         libssl.so
         libssl.so.3
+      scmToken: $(LOCI_AZURE_PAT)
     env:
       LOCI_BACKEND_URL: $(LOCI_DEV_BACKEND_URL)
       LOCI_API_KEY: $(LOCI_DEV_AGENTIC_API_KEY)
-      # Required for PR builds so utils.getMergeBaseSHA can use the
-      # azure-devops-node-api path; without it we fall back to local
-      # 'git merge-base HEAD^1 HEAD^2' (which still works because
-      # Azure checks out the synthetic merge commit by default).
-      SYSTEM_ACCESSTOKEN: $(System.AccessToken)

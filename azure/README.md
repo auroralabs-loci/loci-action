@@ -29,11 +29,13 @@ GitHub Action.
 > Before you begin:
 > - Add `LOCI_BACKEND_URL` as a pipeline variable.
 > - Add `LOCI_API_KEY` as a pipeline secret.
-> - Make sure your job has access to `System.AccessToken` (enable
->   *Allow scripts to access the OAuth token* on the job, or pass it
->   explicitly via `env: SYSTEM_ACCESSTOKEN: $(System.AccessToken)` on
->   the `LociTask@1` step). Without it, PR builds fall back to a local
->   `git merge-base` that needs `fetchDepth: 0` on `checkout: self`.
+> - Create a long-lived Azure DevOps service-account PAT with **Code (Read & Write)**
+>   and **Pull Request Threads (Read & Write)** scopes, store it as a pipeline
+>   secret variable (e.g. `LOCI_AZURE_PAT`), and pass it via the `scmToken`
+>   task input. LOCI uses this token for merge-base resolution at upload time
+>   *and* for the asynchronous post-upload calls (PR comment posting,
+>   `@loci-dev` chat). The token must outlive the build because some of those
+>   calls fire long after the job ends.
 
 ### Example: Build + Upload
 
@@ -77,10 +79,10 @@ steps:
       mode: upload
       project: $(LOCI_PROJECT)
       binaries: samples/build/bin/
+      scmToken: $(LOCI_AZURE_PAT)   # long-lived PAT, stored as a pipeline secret
     env:
       LOCI_API_KEY: $(LOCI_API_KEY)
       LOCI_BACKEND_URL: $(LOCI_BACKEND_URL)
-      SYSTEM_ACCESSTOKEN: $(System.AccessToken)
 ```
 
 The task logs an Inspector dashboard link in its output and writes the same
@@ -106,6 +108,7 @@ exact YAML to paste if the prerequisite is missing.
 | `base`     | No      | PR merge base (on PR builds) | Base version to compare `target` against. Empty unless set or PR context. |
 | `waitBase` | No      | `true` | Whether to wait for the base version's processing to finish. |
 | `optimize` | No      | `false` | Use the LOCI Coding Agent to optimize uploaded binaries. PR builds in agentic mode only; ignored otherwise (a warning is logged). |
+| `scmToken` | ✅ Yes  | — | Long-lived Azure DevOps PAT used by LOCI for SCM API calls (PR comment posting, `@loci-dev` chat, merge-base resolution). Pass via a pipeline secret variable, e.g. `scmToken: $(LOCI_AZURE_PAT)`. |
 
 ### Outputs
 
@@ -147,10 +150,10 @@ dashboard.
 Add `UsePythonVersion@0` with `versionSpec: '3.12'` immediately before
 `LociTask@1`. The task error message contains the exact YAML to paste.
 
-**`Failed to get merge-base SHA. Either provide System.AccessToken or use checkout with fetchDepth: 0.`**
+**`Failed to get merge-base SHA. Verify the scmToken input is set (with Code (Read) scope) or use checkout with fetchDepth: 0.`**
 Either:
-- Pass `SYSTEM_ACCESSTOKEN: $(System.AccessToken)` in the `env:` block of the
-  `LociTask@1` step (preferred — uses the Azure DevOps API).
+- Verify `scmToken` is set on the `LociTask@1` step and the PAT has at least
+  **Code (Read)** scope (preferred — uses the Azure DevOps API).
 - Or set `fetchDepth: 0` on `checkout: self` (so the local `git merge-base`
   fallback has enough history).
 

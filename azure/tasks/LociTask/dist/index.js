@@ -90,7 +90,7 @@ async function resolveVersions(pullRequestData = null, providedBase = null, prov
 
 async function run() {
   try {
-    const iToken = tl.getVariable("System.AccessToken");
+    const iToken = tl.getInput("scmToken", true);
     const iProject = tl.getInput("project", true);
     const iTarget = tl.getInput("target", false);
     const iBase = tl.getInput("base", false);
@@ -218,14 +218,9 @@ async function run({ target, base } = {}) {
       throw new Error("target was not resolved by the resolve step.");
     }
 
-    // loci_api 0.2.39 reads LOCI_SCM_TOKEN at module load and sends it as
-    // X-SCM-Token. The backend's AzureProvider uses this token for the
-    // Azure DevOps API calls it makes after the upload (PR comments, check
-    // runs). System.AccessToken is the natural source on Azure Pipelines.
-    const scmToken = tl.getVariable("System.AccessToken");
-    if (scmToken) {
-      process.env.LOCI_SCM_TOKEN = scmToken;
-    }
+    // Forwarded to loci_api as LOCI_SCM_TOKEN; backend caches it for the
+    // post-upload Azure DevOps API calls (PR comments, @loci-dev chat).
+    process.env.LOCI_SCM_TOKEN = tl.getInput("scmToken", true);
     const isAgentic = await utils.isAgentic();
     const binaryEntries = iBinaries
       .split(/\r?\n/)
@@ -423,7 +418,7 @@ class PullRequestData {
       return mergeBase.substring(0, 7);
     } catch (err) {
       throw new Error(
-        `Failed to get merge-base SHA. Either provide System.AccessToken or use checkout with fetchDepth: 0. Error: ${err.message}`
+        `Failed to get merge-base SHA. Verify the scmToken input is set (with Code (Read) scope) or use checkout with fetchDepth: 0. Error: ${err.message}`
       );
     }
   }

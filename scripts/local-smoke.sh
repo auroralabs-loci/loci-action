@@ -10,6 +10,7 @@
 #
 # Required env:
 #   LOCI_API_KEY       API key for the backend you're pointing at.
+#   INPUT_SCMTOKEN     Azure DevOps PAT used as the scmToken task input.
 #
 # Common overrides (have sane defaults):
 #   LOCI_BACKEND_URL   default: http://localhost:8080
@@ -53,9 +54,10 @@ if [[ ! -f azure/tasks/LociTask/dist/index.js ]]; then
   npm run build:azure
 fi
 
-# Sanity check — backend will reject without a key, fail fast with a
-# clear message instead of letting loci_api emit something cryptic.
+# Sanity checks — fail fast with clear messages instead of letting the task
+# emit something cryptic.
 : "${LOCI_API_KEY:?LOCI_API_KEY must be exported (use the key for whatever backend LOCI_BACKEND_URL points at)}"
+: "${INPUT_SCMTOKEN:?INPUT_SCMTOKEN must be exported (Azure DevOps PAT used as the scmToken task input)}"
 
 export LOCI_BACKEND_URL="${LOCI_BACKEND_URL:-http://localhost:8080}"
 export AGENT_TEMPDIRECTORY="${AGENT_TEMPDIRECTORY:-/tmp}"
@@ -87,13 +89,6 @@ case "$MODE" in
     export SYSTEM_PULLREQUEST_SOURCECOMMITID="${SYSTEM_PULLREQUEST_SOURCECOMMITID:-fedcba0987654321fedcba0987654321fedcba09}"
     export SYSTEM_PULLREQUEST_TARGETBRANCH="${SYSTEM_PULLREQUEST_TARGETBRANCH:-refs/heads/main}"
     export SYSTEM_PULLREQUEST_SOURCEBRANCH="${SYSTEM_PULLREQUEST_SOURCEBRANCH:-refs/heads/feature/smoke-test}"
-    # Stand-in for the build's System.AccessToken. The task forwards this
-    # to loci_api as LOCI_SCM_TOKEN; the backend's AzureProvider uses it
-    # for downstream Azure DevOps API calls. Override SYSTEM_ACCESSTOKEN
-    # in the env to inject a real PAT for end-to-end AzureProvider
-    # observation; the default empty value still validates upload + the
-    # new scm-meta shape (AzureProvider's API calls just no-op).
-    export SYSTEM_ACCESSTOKEN="${SYSTEM_ACCESSTOKEN:-}"
     # Pass an explicit base so resolve.js doesn't try to resolve a
     # merge-base against the backend. The default matches the version
     # the push-mode smoke creates (BUILD_SOURCEVERSION=abcdef1234... →

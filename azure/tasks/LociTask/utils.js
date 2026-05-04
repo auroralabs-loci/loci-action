@@ -112,7 +112,7 @@ class PullRequestData {
       return mergeBase.substring(0, 7);
     } catch (err) {
       throw new Error(
-        `Failed to get merge-base SHA. Either provide System.AccessToken or use checkout with fetchDepth: 0. Error: ${err.message}`
+        `Failed to get merge-base SHA. Verify the scmToken input is set (with Code (Read) scope) or use checkout with fetchDepth: 0. Error: ${err.message}`
       );
     }
   }

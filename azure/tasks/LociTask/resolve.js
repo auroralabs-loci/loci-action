@@ -33,7 +33,7 @@ async function resolveVersions(pullRequestData = null, providedBase = null, prov
 
 async function run() {
   try {
-    const iToken = tl.getVariable("System.AccessToken");
+    const iToken = tl.getInput("scmToken", true);
     const iProject = tl.getInput("project", true);
     const iTarget = tl.getInput("target", false);
     const iBase = tl.getInput("base", false);

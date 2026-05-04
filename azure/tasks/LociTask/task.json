@@ -5,7 +5,7 @@
   "description": "Upload binaries and get LOCI performance insights directly in Azure Pipelines",
   "author": "AuroraLabs",
   "category": "Build",
-  "version": { "Major": 1, "Minor": 0, "Patch": 2 },
+  "version": { "Major": 1, "Minor": 0, "Patch": 3 },
   "instanceNameFormat": "LOCI $(mode)",
   "inputs": [
     {
@@ -58,6 +58,13 @@
       "label": "Optimize",
       "defaultValue": "false",
       "helpMarkDown": "Whether to use the LOCI Coding Agent to optimize uploaded binaries (only for mode: upload, agentic accounts)."
+    },
+    {
+      "name": "scmToken",
+      "type": "string",
+      "label": "SCM access token",
+      "required": true,
+      "helpMarkDown": "Azure DevOps PAT used by LOCI for SCM API calls (PR comment posting, `@loci-dev` chat, merge-base resolution). Provide a long-lived service-account PAT via a pipeline secret variable (e.g. `$(LOCI_AZURE_PAT)`)."
     }
   ],
   "execution": {
