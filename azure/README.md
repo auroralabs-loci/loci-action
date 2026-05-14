@@ -12,12 +12,17 @@ Set these on the pipeline (or as variable group entries):
 
 - `LOCI_BACKEND_URL` — pipeline variable.
 - `LOCI_API_KEY` — pipeline **secret** variable.
-- `scmToken` — long-lived Azure DevOps service-account PAT with **Code (Read
-  & Write)** and **Pull Request Threads (Read & Write)** scopes, stored as a
-  pipeline secret (e.g. `LOCI_AZURE_PAT`). The task forwards it to the LOCI
-  backend, which uses it for merge-base resolution at upload time and for
-  asynchronous post-upload calls (PR comment posting, `@<bot-name>` chat). The
-  token must outlive the build because those calls fire after the job ends.
+- `scmToken` — long-lived Azure DevOps service-account PAT stored as a
+  pipeline secret (e.g. `LOCI_AZURE_PAT`), with the following scopes:
+  - **Code** (Read & Write)
+  - **Identity** (Read)
+  - **Pull Request Threads** (Read & Write)
+  - **Tokens** (Read & Manage)
+
+  The task forwards it to the LOCI backend, which uses it for merge-base
+  resolution at upload time and for asynchronous post-upload calls (PR
+  comment posting, `@<bot-name>` chat). The token must outlive the build
+  because those calls fire after the job ends.
 
 ### LOCI bot identity
 
