@@ -41,14 +41,10 @@ function isELFFile(file) {
 
 async function run({ target, base } = {}) {
   try {
-    // target / base are resolved upstream by resolve.js and passed in by the
-    // dispatcher; project / binaries / optimize are still task inputs the
-    // customer set on the LociTask step.
     const iTarget = target;
     const iBase = base;
     const iProject = tl.getInput("project", true);
     const iBinaries = tl.getInput("binaries", true);
-    const iOptimize = tl.getBoolInput("optimize", false);
     if (!iTarget) {
       throw new Error("target was not resolved by the resolve step.");
     }
@@ -56,7 +52,6 @@ async function run({ target, base } = {}) {
     // Forwarded to loci_api as LOCI_SCM_TOKEN; backend caches it for the
     // post-upload Azure DevOps API calls (PR comments, @loci-dev chat).
     process.env.LOCI_SCM_TOKEN = tl.getInput("scmToken", true);
-    const isAgentic = await utils.isAgentic();
     const binaryEntries = iBinaries
       .split(/\r?\n/)
       .map((x) => x.trim())
@@ -112,11 +107,6 @@ async function run({ target, base } = {}) {
       const pullReq = utils.getPullRequestData();
       const scmMeta = pullReq.getSCMMetaData();
       loci_args.push("--scm-meta", JSON.stringify(scmMeta));
-      if (iOptimize && isAgentic) {
-        loci_args.push("--optimize");
-      } else if (iOptimize && !isAgentic) {
-        tl.warning("LOCI Code Agent optimization requested, but the provided company is not configured for agentic mode.");
-      }
     }
 
     await tl.exec("loci_api", loci_args, { silent: false });

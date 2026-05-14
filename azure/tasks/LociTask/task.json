@@ -5,7 +5,7 @@
   "description": "Upload binaries and get LOCI performance insights directly in Azure Pipelines",
   "author": "AuroraLabs",
   "category": "Build",
-  "version": { "Major": 1, "Minor": 0, "Patch": 3 },
+  "version": { "Major": 1, "Minor": 0, "Patch": 4 },
   "instanceNameFormat": "LOCI $(mode)",
   "inputs": [
     {
@@ -50,14 +50,7 @@
       "type": "boolean",
       "label": "Wait for base",
       "defaultValue": "true",
-      "helpMarkDown": "Whether to wait for the base version's processing to finish."
-    },
-    {
-      "name": "optimize",
-      "type": "boolean",
-      "label": "Optimize",
-      "defaultValue": "false",
-      "helpMarkDown": "Whether to use the LOCI Coding Agent to optimize uploaded binaries (only for mode: upload, agentic accounts)."
+      "helpMarkDown": "Whether to wait for the base version's processing to finish before uploading the target. Required for comparison analysis."
     },
     {
       "name": "scmToken",
