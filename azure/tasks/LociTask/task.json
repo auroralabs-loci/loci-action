@@ -5,7 +5,7 @@
   "description": "Upload binaries and get LOCI performance insights directly in Azure Pipelines",
   "author": "AuroraLabs",
   "category": "Build",
-  "version": { "Major": 1, "Minor": 0, "Patch": 4 },
+  "version": { "Major": 1, "Minor": 0, "Patch": 5 },
   "instanceNameFormat": "LOCI $(mode)",
   "inputs": [
     {
@@ -21,8 +21,8 @@
       "name": "project",
       "type": "string",
       "label": "Project name",
-      "required": true,
-      "helpMarkDown": "LOCI project name to tag analysis results."
+      "required": false,
+      "helpMarkDown": "LOCI project name to tag analysis results. Auto-resolves to the Azure DevOps repository name (`Build.Repository.Name`) if not set."
     },
     {
       "name": "binaries",

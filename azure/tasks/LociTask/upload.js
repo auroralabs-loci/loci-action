@@ -39,14 +39,17 @@ function isELFFile(file) {
   }
 }
 
-async function run({ target, base } = {}) {
+async function run({ target, base, project } = {}) {
   try {
     const iTarget = target;
     const iBase = base;
-    const iProject = tl.getInput("project", true);
+    const iProject = project;
     const iBinaries = tl.getInput("binaries", true);
     if (!iTarget) {
       throw new Error("target was not resolved by the resolve step.");
+    }
+    if (!iProject) {
+      throw new Error("project was not resolved by the resolve step.");
     }
 
     // Forwarded to loci_api as LOCI_SCM_TOKEN; backend caches it for the

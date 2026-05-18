@@ -31,10 +31,25 @@ async function resolveVersions(pullRequestData = null, providedBase = null, prov
   return { base, target };
 }
 
+function resolveProject() {
+  const provided = tl.getInput("project", false);
+  if (provided) {
+    return provided;
+  }
+  const repo = tl.getVariable("Build.Repository.Name");
+  if (!repo) {
+    throw new Error(
+      "project input was not provided and Build.Repository.Name is not set; cannot determine LOCI project name."
+    );
+  }
+  console.log(`Project input not set; defaulting to Build.Repository.Name: ${repo}`);
+  return repo;
+}
+
 async function run() {
   try {
     const iToken = tl.getInput("scmToken", true);
-    const iProject = tl.getInput("project", true);
+    const iProject = resolveProject();
     const iTarget = tl.getInput("target", false);
     const iBase = tl.getInput("base", false);
     const iWaitBase = tl.getBoolInput("waitBase", false);
@@ -92,7 +107,7 @@ async function run() {
     tl.setVariable("LOCI_TARGET", target);
     tl.setVariable("LOCI_BASE", base);
 
-    return { target, base };
+    return { target, base, project: iProject };
   } catch (err) {
     throw new Error(`Resolving versions failed: ${err.message}`);
   }
