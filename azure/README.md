@@ -126,12 +126,12 @@ steps:
 
 #### Outputs
 
-| Variable      | Kind                                   | Description |
-|---------------|----------------------------------------|-------------|
-| `target`      | Step output (`$(<stepName>.target)`)   | Resolved project version name for this run. |
-| `base`        | Step output (`$(<stepName>.base)`)     | Resolved base version name (may be empty). |
-| `LOCI_TARGET` | Pipeline variable (`$(LOCI_TARGET)`)   | Same value as `target`, available to all downstream tasks. |
-| `LOCI_BASE`   | Pipeline variable (`$(LOCI_BASE)`)     | Same value as `base`, available to all downstream tasks. |
+| Output        | Description |
+|---------------|-------------|
+| `target`      | Resolved project version name for this run. Read as a step output: `$(<stepName>.target)`. |
+| `base`        | Resolved base version name (may be empty). Read as a step output: `$(<stepName>.base)`. |
+| `LOCI_TARGET` | Same value as `target`, set as a pipeline variable available to all downstream tasks: `$(LOCI_TARGET)`. |
+| `LOCI_BASE`   | Same value as `base`, set as a pipeline variable available to all downstream tasks: `$(LOCI_BASE)`. |
 
 ### Viewing results
 
