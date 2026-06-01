@@ -13,6 +13,8 @@ LOCI lets you upload compiled binaries for performance analysis, view insights d
   
   Comments on PRs are posted automatically by the GitHub App after completed binaries upload.
 
+  Also available: LOCI Claude Plugin for write-time co-reasoning inside Claude Code, and LOCI Azure DevOps Extension for Azure Pipelines. Same engine, same signals.
+
 ### Quick start
 
 > Before you begin:
@@ -125,10 +127,10 @@ jobs:
 
 | Feature                       | Standard Mode              | Agentic Mode                                                                                       | GitHub App Required? | Where it appears                                          |
 | ----------------------------- | -------------------------- | -------------------------------------------------------------------------------------------------- | -------------------- | --------------------------------------------------------- |
-| **Upload of binaries**        | ✅ Yes                      | ✅ Yes                                                                                              | ❌ No                 | LOCI Inspector (always)                                   |
+| **Upload of binaries**        | ✅ Yes                      | ✅ Yes                                                                                              | ❌ No                 | LOCI Inspector - your execution dashboard — also accessible at loci-dev.net (always)                                   |
 | **Function Insights** | ✅ Yes (via `summary` step) | ✅ Yes (via `summary` step)                                                                         | ❌ No                 | Workflow run summary (summary step)                       |
 | **LOCI Agent Summary Report**      | ❌ Not available            | ✅ Yes<br>– In workflow run summary (if `summary` step added)<br>– As PR comment (if App installed) | ✅  For PR comment    | Workflow run summary (summary step) & PR comment (App)    |
-| **Performance Review Check**  | ❌ Not available            | ✅ Yes                                                                                              | ✅  Yes (App only)    | GitHub Checks tab (pass/fail based on `.github/loci.yml` user configuration) |
+| **Performance Review Check**  | ❌ Not available            | ✅ Yes                                                                                              | ✅  Yes (App only)    | Pushback or Pass based on your quality contract (`.github/loci.yml`) |
 
 ### How it works
 
