@@ -21,6 +21,10 @@ LOCI lets you upload compiled binaries for performance analysis, view insights d
 > - Install the LOCI `GitHub App` on your repo if you want automatic PR comments and overall Performance Reviews.
 > - (optional, `agentic mode only`) If you want the summary step to add the summary report to the workflow job UI (note that the job will wait for the binaries upload and analysis to finish), add a Personal Access Token in a `LOCI_GITHUB_TOKEN` env variable for our action (we advice to store the actual token as a GitHub Secret).
 
+Also available:  
+[LOCI Claude Plugin](https://github.com/auroralabs-loci/loci-claude/blob/main/README.md) for write-time co-reasoning inside Claude Code.  
+[LOCI Azure DevOps Extension](https://github.com/auroralabs-loci/loci-action/blob/azure_devops_support/azure/README.md) for Azure Pipelines. Same engine, same signals.  
+
 ### Example: Build + Upload
 
 ```yaml
