@@ -128,7 +128,7 @@ jobs:
 | **Upload of binaries**        | ✅ Yes                      | ✅ Yes                                                                                              | ❌ No                 | LOCI Inspector (always)                                   |
 | **Function Insights** | ✅ Yes (via `summary` step) | ✅ Yes (via `summary` step)                                                                         | ❌ No                 | Workflow run summary (summary step)                       |
 | **LOCI Agent Summary Report**      | ❌ Not available            | ✅ Yes<br>– In workflow run summary (if `summary` step added)<br>– As PR comment (if App installed) | ✅  For PR comment    | Workflow run summary (summary step) & PR comment (App)    |
-| **Performance Review Check**  | ❌ Not available            | ✅ Yes                                                                                              | ✅  Yes (App only)    | GitHub Checks tab (pass/fail based on `.github/loci.yml` user configuration) |
+| **Performance Review Check**  | ❌ Not available            | ✅ Yes                                                                                              | ✅  Yes (App only)    | Pushback or Pass based on your quality contract (`.github/loci.yml`) |
 
 ### How it works
 
