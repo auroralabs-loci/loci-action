@@ -4,15 +4,17 @@ This extension contributes an Azure Pipelines task (`LociTask@1`) that uploads
 compiled binaries to the LOCI backend for performance analysis. It is the
 Azure DevOps counterpart of the
 [`auroralabs-loci/loci-action`](https://github.com/auroralabs-loci/loci-action)
-GitHub Action.
+GitHub Action. 
+`LociTask@1` currently operates at the Advise level — it posts a verdict and 
+evidence on every PR but does not block merge.
 
 ### Prerequisites
 
 Do these once, before configuring any pipeline.
 
-#### **LOCI dashboard setup**
+#### **LOCI Inspector setup**
 
-In the LOCI dashboard:
+In the LOCI Inspector:
 
 1. **Enable agentic mode.** Sign in as a company user, open **Company
    Details → Edit**, tick the **agentic** checkbox, and save. This turns on
@@ -50,7 +52,7 @@ Store the PAT as an Azure DevOps pipeline secret (e.g. `LOCI_AZURE_PAT`)
 and pass it to the task as `scmToken`. The first task run uploads the
 token to the LOCI backend, which then uses it for the async post-upload
 calls (PR comments, `@<bot-name>` chat) that fire after the build ends.
-You can verify the stored token's validity in the LOCI dashboard under your project's **Personal Access
+You can verify the stored token's validity in the LOCI Inspector under your project's **Personal Access
 Token** field (top-right of the project view).
 
 #### Service hook for PR chat
@@ -71,7 +73,7 @@ Set these on the pipeline (or as variable group entries):
 
 - `LOCI_BACKEND_URL` — pipeline variable.
 - `LOCI_API_KEY` — pipeline **secret** variable (copied from the LOCI
-  dashboard above).
+  Inspector above).
 - `LOCI_AZURE_PAT` — pipeline **secret** variable holding the bot PAT
   generated above; passed to the task as `scmToken`.
 
@@ -112,6 +114,10 @@ steps:
       LOCI_BACKEND_URL: $(LOCI_BACKEND_URL)
 ```
 
+Also available: 
+[LOCI GitHub App & Action](https://github.com/auroralabs-loci/loci-action/blob/main/README.md) — verdict on every PR, gate on merge via Performance Review Check
+[LOCI Claude Plugin](https://github.com/auroralabs-loci/loci-claude/blob/main/README.md) — execution signals inside Claude Code at plan and write time
+
 #### Inputs
 
 | Input      | Required | Default | Description |
@@ -135,10 +141,9 @@ steps:
 
 ### Viewing results
 
-Open the **LOCI Upload** step's log and look at the last line — the task
-prints the LOCI dashboard URL there. On PR builds, the same analysis is
-also one click away from **Checks → Performance overview**, whose target
-URL deep-links straight to the latest comparison view.
+Open the **LOCI Upload** step's log and look at the last line — it prints the LOCI Inspector 
+URL (available to verified users only). On PR builds, the PR summary analysis is also 
+accessible via Checks → Performance overview, which links directly to the latest comparison view.
 
 ### Rotating the SCM PAT
 
@@ -147,7 +152,7 @@ Azure DevOps PATs expire. To rotate, update the pipeline secret/variable
 it to the LOCI backend and replaces the stored copy used for async
 post-upload calls (PR comments, `@<bot-name>` chat). If the old token
 expires before the next build runs, paste the new token directly into
-the project's **Personal Access Token** field in the LOCI dashboard to
+the project's **Personal Access Token** field in the LOCI Inspector to
 unblock those calls immediately. The project view shows an error
 indicator when the stored token is no longer valid.
 
@@ -162,9 +167,10 @@ to compare against; for in-flight processing, keep `waitBase: true` (the
 default) so the task polls until the base is ready.
 
 **Account is not configured for agentic mode.**
-Some features require the company to be agentic. In the LOCI dashboard,
-sign in as a company user, open **Company Details → Edit**, tick the
-**agentic** checkbox, and save (or ask a LOCI admin to do it).
+The LOCI Azure Extension requires agentic mode to be enabled on your account. 
+To enable it, sign in to the LOCI Inspector as a company user, navigate to 
+**Company Details → Edit**, tick the **Agentic** checkbox, and save. 
+If you don't have the necessary permissions, ask a LOCI admin to do it for you.
 
 **`@<bot-name>` chat isn't responding.**
 Check that **repository-url** is set on your LOCI project (see above) and
