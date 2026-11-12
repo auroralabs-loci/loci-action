@@ -19,6 +19,7 @@ LOCI lets you upload compiled binaries for performance analysis, view insights d
 > - Add `LOCI_BACKEND_URL` as a GitHub Variable.
 > - Add `LOCI_API_KEY` as a GitHub Secret.
 > - Install the LOCI `GitHub App` on your repo if you want automatic PR comments and overall Performance Reviews.
+> - Give the job `permissions: id-token: write` (and `contents: read`, see below). The upload step uses it to prove to LOCI that the workflow runs in the PR's repository; without that proof LOCI may skip its PR checks and comments.
 > - (optional, `agentic mode only`) If you want the summary step to add the summary report to the workflow job UI (note that the job will wait for the binaries upload and analysis to finish), add a Personal Access Token in a `LOCI_GITHUB_TOKEN` env variable for our action (we advice to store the actual token as a GitHub Secret).
 
 ### Example: Build + Upload
@@ -38,6 +39,9 @@ env:
 jobs:
   build-and-upload:
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write   # lets the upload step prove the PR's repository to LOCI
+      contents: read    # a permissions block drops every permission it does not list
     steps:
       - name: Prepare environment
         run: |
@@ -71,6 +75,9 @@ jobs:
 jobs:
   build-upload-and-summary:
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write   # lets the upload step prove the PR's repository to LOCI
+      contents: read    # a permissions block drops every permission it does not list
     steps:
       # ... build steps ...
 
@@ -99,6 +106,8 @@ jobs:
 
 - The upload step is enough for the GitHub App to add a comment on the PR (if installed and the company has agentic mode enabled).
 - The summary step is only needed if you want the workflow run summary to show the LOCI Report and Top Function Insights.
+- On pull requests the upload step requests a GitHub OIDC token (audience `loci-scm-proof`) and sends it to LOCI, which checks that the token was issued to a workflow of the PR's repository. If the job lacks `id-token: write`, the step logs a warning and uploads without it. Once a repository has been proven, later uploads (for example from fork PRs, which get no token) keep their PR checks and comments.
+- Setting `permissions` replaces the defaults: list `contents: read` (needed by `actions/checkout` in private repositories and for the merge-base lookup) next to `id-token: write`, plus anything else your job needs.
 
 
 ### Inputs

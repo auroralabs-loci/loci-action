@@ -7,6 +7,24 @@ const core = require("@actions/core");
 const exec = require("@actions/exec");
 const github = require("@actions/github");
 
+const OIDC_AUDIENCE = process.env.LOCI_OIDC_AUDIENCE || "loci-scm-proof";
+
+async function getRepositoryProof() {
+  try {
+    const token = await core.getIDToken(OIDC_AUDIENCE);
+    core.setSecret(token);
+    return token;
+  } catch (err) {
+    const reason = String(err.message).split("\n").map((l) => l.trim()).filter(Boolean).join(" ");
+    core.warning(
+      "LOCI could not prove this workflow runs in the PR's repository, so LOCI may skip its PR checks and comments. " +
+      "Add `permissions: { id-token: write, contents: read }` to the job (pull requests from forks get no token). " +
+      `(${reason})`
+    );
+    return "";
+  }
+}
+
 
 async function writeRunSummary(details) {
   core.summary
@@ -95,6 +113,7 @@ async function run() {
       loci_args.push("--compare-version-name", iBase);
     }
 
+    const env = { ...process.env };
     if (utils.isPullRequest()) {
       const pullReq = utils.getPullRequestData();
       const scmMeta = pullReq.getSCMMetaData();
@@ -104,9 +123,13 @@ async function run() {
       } else if (iOptimize && !isAgentic) {
         core.warning("LOCI Code Agent optimization requested, but the provided company is not configured for agentic mode.");
       }
+      const proof = await getRepositoryProof();
+      if (proof) {
+        env.LOCI_SCM_PROOF = proof;
+      }
     }
 
-    await exec.exec("loci_api", loci_args, { silent: false });
+    await exec.exec("loci_api", loci_args, { silent: false, env });
     core.info("Project version uploaded");
     core.endGroup();
 
