@@ -250,6 +250,11 @@ async function run() {
     const iTarget  = core.getInput("target", { required: true });
     const iBase = core.getInput("base", { required: false });
     const iTopNSymbols = core.getInput("top-n-symbols", { required: true });
+    // loci-api returns at most 10000 functions per request
+    const topNSymbols = Number(iTopNSymbols);
+    if (!Number.isInteger(topNSymbols) || topNSymbols < 1 || topNSymbols > 10000) {
+      throw new Error(`top-n-symbols must be a whole number from 1 to 10000, not '${iTopNSymbols}'`);
+    }
 
     const { status, status_message, details } = await utils.waitVersionProcessingToFinish(iProject, iTarget, false);
     if (status !== 0) {
@@ -265,7 +270,7 @@ async function run() {
     // The top symbols: the largest response time increases against the base, or without one the slowest.
     let loci_args = [
       "func-insights", iProject, iTarget, "--output", insightsFile,
-      "--limit", iTopNSymbols,
+      "--limit", String(topNSymbols),
       "--sort-by", iBase ? "perc_response" : "mean_response",
       "--sort-direction", "desc",
     ];
@@ -307,7 +312,7 @@ async function run() {
       core.endGroup();
     }
 
-    await writeRunSummary(details, summary, diffSummary, insights, totalCount, !!iBase, iTopNSymbols);
+    await writeRunSummary(details, summary, diffSummary, insights, totalCount, !!iBase, topNSymbols);
   } catch (err) {
     core.setFailed(`Insights failed: ${err.message}. Terminating analysis.`);
   }

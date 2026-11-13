@@ -13,7 +13,7 @@ inputs:
     description: Base version name. If provided, version is compared against it.
     required: false
   top-n-symbols:
-    description: Number of symbols displayed in function insights - summary step
+    description: Number of symbols displayed in function insights - summary step (1 to 10000)
     required: true
     default: '5'
 

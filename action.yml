@@ -37,7 +37,7 @@ inputs:
       is chosen unless you provide one.
     required: false
   top-n-symbols:
-    description: Number of symbols displayed in function insights - summary step
+    description: Number of symbols displayed in function insights - summary step (1 to 10000)
     required: true
     default: '5'
   wait-base:
@@ -119,3 +119,4 @@ runs:
         project:   ${{ inputs.project }}
         target:    ${{ steps.resolve.outputs.target }}
         base:      ${{ steps.resolve.outputs.base }}
+        top-n-symbols: ${{ inputs.top-n-symbols }}

@@ -112,7 +112,7 @@ jobs:
 | `binaries`      | *Only for `upload`* |                 —                | Newline-separated list of binary paths, glob patterns or a directory. Required for `upload`, ignored for `summary`. |
 | `target`        |          No         |       `<branch>@<shortSHA>`      | Project version label. Auto-resolves if not set.                                                     |
 | `base`          |          No         | PR merge base (on pull requests) | Base version to compare against. Empty unless set or PR context.                                     |
-| `top-n-symbols` |        ✅ Yes        |                `5`               | Number of functions shown in function insights in the `summary` step.                                |
+| `top-n-symbols` |        ✅ Yes        |                `5`               | Number of functions shown in function insights in the `summary` step, a whole number from 1 to 10000. |
 
 ### Outputs
 
