@@ -1,7 +1,16 @@
 name: LOCI Common
-description: Setup Python and install dependencies
+description: Install loci-api and its dependencies
 author: AuroraLabs
 
 runs:
-  using: node20
-  main: dist/index.js
+  using: composite
+  steps:
+    # GITHUB_ACTION_PATH is this action's folder in the checkout of the ref it was called at, the
+    # same checkout the summary and upload steps run from, so they get the loci-api their code expects.
+    # The env var also holds the right path inside a container job.
+    - name: Install python dependencies
+      shell: bash
+      run: |
+        python --version
+        pip install --upgrade pip
+        pip install -r "$GITHUB_ACTION_PATH/../../../requirements.txt"
