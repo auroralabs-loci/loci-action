@@ -17,7 +17,7 @@ inputs:
     required: false
   optimize:
     description: >
-      Whether to use LOCI Code Agent that optimizes uploaded binaries upon upload.
+      No longer used: the LOCI Code Agent was retired. Setting it only logs a warning.
 
 runs:
   using: node20

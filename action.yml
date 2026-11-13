@@ -49,8 +49,7 @@ inputs:
     default: 'true'
   optimize:
     description: >
-      Whether to use the LOCI Coding Agent to optimize uploaded binaries (only for mode: upload).
-      Ignored if the PR author is the LOCI Agentic AI bot. Accepts 'true' or 'false'.
+      No longer used: the LOCI Code Agent was retired. Setting it only logs a warning.
     required: false
     default: 'false'
 
