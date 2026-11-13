@@ -32048,58 +32048,38 @@ const core = __nccwpck_require__(7484);
 const exec = __nccwpck_require__(5236);
 
 
-function buildTables(insights, hasBaseVersion, topNSymbols) {
+// One table row per function, in the order loci-api returned them.
+function buildTables(insights, hasBaseVersion) {
   if (!Array.isArray(insights)) throw new TypeError("Incorrect insights format");
 
-  const binaries = new Map();
-  for (const it of insights) {
-    const key = it.binary_name ?? "__unknown__";
-    if (!binaries.has(key)) binaries.set(key, []);
-    binaries.get(key).push(it);
-  }
-
-  let result = [];
-  for (const [binaryName, items] of binaries.entries()) {
-    const data = items.map((it) => {
-      const row = {
-        binary_name: binaryName,
-        function_name: it.function_name ?? "",
-        // response
-        rsp_mean: it.mean_response ?? "",
-        ...(hasBaseVersion
-          ? {
-              rsp_base_mean: it.mean_response_base ?? "",
-              rsp_perc: it.perc_response ?? "",
-            }
-          : {}),
-        // throughput
-        thr_mean: it.mean_throughput ?? "",
-        ...(hasBaseVersion
-          ? {
-              thr_base_mean: it.mean_throughput_base ?? "",
-              thr_perc: it.perc_throughput ?? "",
-            }
-          : {}),
-        // bottleneck
-        bn_mean: it.mean_bottleneck ?? "",
-        ...(hasBaseVersion
-          ? {
-              bn_base_mean: it.mean_bottleneck_base ?? "",
-              bn_perc: it.perc_bottleneck ?? "",
-            }
-          : {}),
-      };
-      return row;
-    });
-
-    result.push(...data);
-  }
-
-  result.sort((a, b) =>
-    hasBaseVersion ? b.rsp_perc - a.rsp_perc : b.rsp_mean - a.rsp_mean
-  );
-
-  return result.slice(0, topNSymbols);
+  return insights.map((it) => ({
+    binary_name: it.binary_name ?? "__unknown__",
+    function_name: it.function_name ?? "",
+    // response
+    rsp_mean: it.mean_response ?? "",
+    ...(hasBaseVersion
+      ? {
+          rsp_base_mean: it.mean_response_base ?? "",
+          rsp_perc: it.perc_response ?? "",
+        }
+      : {}),
+    // throughput
+    thr_mean: it.mean_throughput ?? "",
+    ...(hasBaseVersion
+      ? {
+          thr_base_mean: it.mean_throughput_base ?? "",
+          thr_perc: it.perc_throughput ?? "",
+        }
+      : {}),
+    // bottleneck
+    bn_mean: it.mean_bottleneck ?? "",
+    ...(hasBaseVersion
+      ? {
+          bn_base_mean: it.mean_bottleneck_base ?? "",
+          bn_perc: it.perc_bottleneck ?? "",
+        }
+      : {}),
+  }));
 }
 
 function formatTimeValue(nanoseconds) {
@@ -32183,8 +32163,8 @@ function getColumns(hasBaseVersion) {
   return columns;
 }
 
-async function writeRunSummary(details, summary, diffSummary, insights, hasBaseVersion, topNSymbols) {
-  const table = buildTables(insights, hasBaseVersion, topNSymbols);
+async function writeRunSummary(details, summary, diffSummary, insights, totalCount, hasBaseVersion, topNSymbols) {
+  const table = buildTables(insights, hasBaseVersion);
   core.summary
     .addHeading("LOCI Summary", 1)
     .addRaw(summary || "");
@@ -32197,12 +32177,12 @@ async function writeRunSummary(details, summary, diffSummary, insights, hasBaseV
   if (table && table.length) {
     if (hasBaseVersion && hasDiffSummary) {
       core.summary
-      .addRaw(`Modified symbols count: ${insights.length} (showing top ${topNSymbols})`)
+      .addRaw(`Modified symbols count: ${totalCount} (showing top ${topNSymbols})`)
       .addBreak()
       .addEOL();
     } else {
       core.summary
-      .addRaw(`Symbols count: ${insights.length} (showing top ${topNSymbols})`)
+      .addRaw(`Symbols count: ${totalCount} (showing top ${topNSymbols})`)
       .addBreak()
       .addEOL();
     }
@@ -32324,8 +32304,14 @@ async function run() {
     core.info(`Head: ${iTarget}`);
 
     const insightsFile = path.join(process.cwd(), "data.json");
-    let loci_args = ["func-insights", iProject, iTarget, "--output", insightsFile];
-    
+    // The top symbols: the largest response time increases against the base, or without one the slowest.
+    let loci_args = [
+      "func-insights", iProject, iTarget, "--output", insightsFile,
+      "--limit", iTopNSymbols,
+      "--sort-by", iBase ? "perc_response" : "mean_response",
+      "--sort-direction", "desc",
+    ];
+
     if (iBase) {
       core.info(`Base: ${iBase}`);
       if (iBase == iTarget) {
@@ -32338,6 +32324,7 @@ async function run() {
     const data = JSON.parse(fs.readFileSync(insightsFile, "utf8"));
     const diffSummary = data.diff_summary;
     const insights = data.insights;
+    const totalCount = data.total_count;
     core.info("Insights fetched successfully.");
     core.endGroup();
 
@@ -32362,7 +32349,7 @@ async function run() {
       core.endGroup();
     }
 
-    await writeRunSummary(details, summary, diffSummary, insights, !!iBase, iTopNSymbols);
+    await writeRunSummary(details, summary, diffSummary, insights, totalCount, !!iBase, iTopNSymbols);
   } catch (err) {
     core.setFailed(`Insights failed: ${err.message}. Terminating analysis.`);
   }
