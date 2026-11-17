@@ -4,7 +4,7 @@ author: AuroraLabs
 
 inputs:
   project:
-    description: LOCI project name.
+    description: Project name.
     required: true
   target:
     description: Version name.
@@ -18,5 +18,5 @@ inputs:
     default: '5'
 
 runs:
-  using: node20
+  using: node24
   main: dist/index.js
