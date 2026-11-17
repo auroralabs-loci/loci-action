@@ -1,9 +1,8 @@
-const fs = require("fs");
-const path = require("path");
-const utils = require("../utils");
+import fs from "fs";
+import path from "path";
+import * as utils from "../utils";
 
-const core = require("@actions/core");
-const exec = require("@actions/exec");
+import * as core from "@actions/core";
 
 
 function buildTables(insights, hasBaseVersion, topNSymbols) {
@@ -189,7 +188,7 @@ async function writeRunSummary(details, summary, diffSummary, insights, hasBaseV
         "Assembly generation"
       ]);
   } else if (hasBaseVersion) {
-    warnMessage = "No comparison analysis found between the selected base and target versions. Information about symbol changes (modified, deleted, etc.) is missing from the report.";
+    const warnMessage = "No comparison analysis found between the selected base and target versions. Information about symbol changes (modified, deleted, etc.) is missing from the report.";
     core.warning(warnMessage);
     core.summary
     .addRaw(`* ${warnMessage}`);
@@ -226,7 +225,7 @@ async function fetchAgentSummary(project, target, base, scmMeta) {
 
   try {
 
-    await exec.exec("loci_api", loci_args, {
+    await utils.execLociApi(loci_args, {
       silent: false,
       env: process.env,
       listeners: {
@@ -292,7 +291,7 @@ async function run() {
       loci_args.push("--version-name-base", iBase, "--filter", "mod");
     }
 
-    await exec.exec("loci_api", loci_args, { silent: false });
+    await utils.execLociApi(loci_args, { silent: false });
     const data = JSON.parse(fs.readFileSync(insightsFile, "utf8"));
     const diffSummary = data.diff_summary;
     const insights = data.insights;

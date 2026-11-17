@@ -1,6 +1,7 @@
-const fs = require("fs");
-const utils = require("../utils");
-const core = require("@actions/core");
+import fs from "fs";
+import * as utils from "../utils";
+import * as core from "@actions/core";
+import * as github from "@actions/github";
 
 async function resolveVersions(pullRequestData = null, providedBase = null, providedTarget = null, token = null) {
   if (providedBase) {
@@ -17,28 +18,30 @@ async function resolveVersions(pullRequestData = null, providedBase = null, prov
     return { base, target };
   }
 
-  let head = "";
-  try {
-    const sha = process.env.GITHUB_SHA?.substring(0, 7) || "";
-    const ref = process.env.GITHUB_REF_NAME || "";
-    head = `${ref}@${sha}`;
-  } catch (error) {
-    head = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+  function getTarget() {
+    try {
+      const sha = process.env.GITHUB_SHA?.substring(0, 7) || "";
+      const ref = process.env.GITHUB_REF_NAME || "";
+      return `${ref}@${sha}`;
+    } catch (error) {
+      return new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+    }
   }
 
-  const base = providedBase ? providedBase : "";
-  const target = providedTarget ? providedTarget : head;
+  const target = providedTarget || getTarget();
+  const base = providedBase || "";
   return { base, target };
 }
 
 async function run() {
   try {
-    const iToken = core.getInput("token", { required: false });
-    const iProject = core.getInput("project", { required: true });
+    const iProject = core.getInput("project", { required: false });
     const iTarget = core.getInput("target", { required: false });
     const iBase = core.getInput("base", { required: false });
     const iWaitBase = core.getInput("wait-base", { required: false }) === 'true';
+    const iToken = core.getInput("token", { required: false });
 
+    const project = iProject || github.context.repo.repo;
     const pullReq = utils.getPullRequestData();
     
     const { base, target } = await resolveVersions(pullReq, iBase, iTarget, iToken);
@@ -63,11 +66,11 @@ async function run() {
       let status_code = null;
       let status_message = '';
       if (iWaitBase) {
-        const { status, sm, _ } = await utils.waitVersionProcessingToFinish(iProject, base, true);
+        const { status, status_message: sm } = await utils.waitVersionProcessingToFinish(project, base, true);
         status_code = status;
         status_message = sm || 'Unknown error';
       } else {
-        const { status, sm, _ } = await utils.fetchVersionStatus(iProject, base);
+        const { status, status_message: sm } = await utils.fetchVersionStatus(project, base);
         status_code = status;
         status_message = sm || 'Unknown error';
         if (status_code == -1) {
@@ -88,9 +91,7 @@ async function run() {
 
     core.setOutput("target", target);
     core.setOutput("base", base);
-
-    core.exportVariable("LOCI_TARGET", target);
-    core.exportVariable("LOCI_BASE", base);
+    core.setOutput("project", project);
   } catch (err) {
     core.setFailed(`Resolving versions failed: ${err.message}`);
   }

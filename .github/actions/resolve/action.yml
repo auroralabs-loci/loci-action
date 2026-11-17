@@ -8,8 +8,8 @@ inputs:
     required: false
     default: '${{ github.token }}'
   project:
-    description: Project name.
-    required: true
+    description: Project name. If not provided, repository name is used.
+    required: false
   target:
     description: Version name.
     required: false
@@ -28,5 +28,5 @@ outputs:
     description: Project base version name (may be empty if context is not Pull Request).
 
 runs:
-  using: node20
+  using: node24
   main: dist/index.js

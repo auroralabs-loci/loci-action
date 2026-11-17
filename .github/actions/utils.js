@@ -1,11 +1,47 @@
-const fs = require("fs");
-const path = require("path");
+import fs from "fs";
+import path from "path";
 
-const exec = require("@actions/exec");
-const core = require("@actions/core");
-const github = require("@actions/github");
+import * as exec from "@actions/exec";
+import * as core from "@actions/core";
+import * as github from "@actions/github";
+import { execSync } from "child_process";
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+function cliWarnings(stderr) {
+  const warnings = stderr
+    .split(/\r?\n/)
+    .filter((line) => line.startsWith("WARNING: "))
+    .map((line) => line.slice("WARNING: ".length).trim())
+    .filter(Boolean);
+  return [...new Set(warnings)];
+}
+
+async function execLociApi(args, options = {}) {
+  if (options.silent) {
+    return exec.exec("loci_api", args, options);
+  }
+  const stderr = [];
+  const listeners = {
+    ...options.listeners,
+    stderr: (data) => {
+      stderr.push(data);
+      options.listeners?.stderr?.(data);
+    },
+  };
+  try {
+    return await exec.exec("loci_api", args, { ...options, listeners });
+  } finally {
+    const text = Buffer.concat(stderr).toString();
+    const warnings = cliWarnings(text);
+    // The runner reads a logging command only at the start of a line.
+    if (warnings.length && !text.endsWith("\n")) {
+      process.stdout.write("\n");
+    }
+    warnings.forEach((w) => core.warning(w));
+  }
+}
+
 class PullRequestData {
   constructor(context) {
     if (!context || !context.payload.pull_request) {
@@ -35,7 +71,8 @@ class PullRequestData {
           head: this.headREF,
           actor: this.actor,
           head_sha: this.headSHA,
-          pr_number: String(this.prNumber)
+          pr_number: String(this.prNumber),
+          provider: "github"
         };
   }
 
@@ -57,7 +94,6 @@ class PullRequestData {
 
     try {
       core.info('Resolving merge-base SHA via local git.');
-      const { execSync } = require('child_process');
       const mergeBase = execSync(`git merge-base ${this.baseSHA} ${this.headSHA}`, {
         encoding: 'utf-8'
       }).trim();
@@ -113,7 +149,7 @@ async function isAgentic(silent = true) {
 async function fetchVersionStatus(project, version, silent = true, retryAfterFailure = false) {
   const file = path.join(process.cwd(), "data.json");
   try {
-    await exec.exec("loci_api", ["status", project, version, "--output", file], {
+    await execLociApi(["status", project, version, "--output", file], {
       silent: silent,
     });
   } catch (err) {
@@ -190,11 +226,12 @@ async function waitVersionProcessingToFinish(
 }
 
 
-module.exports = {
-  isAgentic: isAgentic,
-  isPullRequest: isPullRequest,
-  getPullRequestData: getPullRequestData,
-  fetchVersionStatus: fetchVersionStatus,
-  fetchVersionStatusWithDetails: fetchVersionStatusWithDetails,
-  waitVersionProcessingToFinish: waitVersionProcessingToFinish
+export {
+  execLociApi,
+  isAgentic,
+  isPullRequest,
+  getPullRequestData,
+  fetchVersionStatus,
+  fetchVersionStatusWithDetails,
+  waitVersionProcessingToFinish
 };

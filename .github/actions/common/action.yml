@@ -3,5 +3,5 @@ description: Setup Python and install dependencies
 author: AuroraLabs
 
 runs:
-  using: node20
+  using: node24
   main: dist/index.js

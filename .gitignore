@@ -1,1 +1,8 @@
 node_modules
+build/
+.local/
+
+# Written to the working directory when the task runs locally (scripts/local-smoke.sh)
+binaries.tar.gz
+data.json
+loci-upload-summary.md
