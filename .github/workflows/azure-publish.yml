@@ -1,0 +1,96 @@
+name: Publish Azure extension
+run-name: Azure extension from ${{ inputs.ref }}${{ !inputs.publish && ' (package only)' || '' }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Branch, tag or commit whose azure/ is published
+        required: true
+        default: main
+      publish:
+        description: Publish to the Marketplace (off packages only)
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: azure-publish
+  cancel-in-progress: false
+
+env:
+  TFX: tfx-cli@0.24.2
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+          persist-credentials: false
+
+      - name: Require the extension manifest
+        env:
+          REF: ${{ inputs.ref }}
+        run: |
+          if [[ ! -f azure/vss-extension.json ]]; then
+            echo "::error::azure/vss-extension.json does not exist on $REF; there is no Azure extension to publish"
+            exit 1
+          fi
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Package azure/ as committed
+        run: |
+          npx --yes "$TFX" extension create --no-prompt \
+            --root azure --manifest-globs vss-extension.json \
+            --output-path "$RUNNER_TEMP/vsix/"
+          extension=$(jq -r '"\(.publisher).\(.id) \(.version)"' azure/vss-extension.json)
+          task=$(jq -r '"\(.name) \(.version.Major).\(.version.Minor).\(.version.Patch)"' azure/tasks/LociTask/task.json)
+          echo "Packaged $extension with task $task from $(git rev-parse HEAD)" | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: azure-extension
+          path: ${{ runner.temp }}/vsix/*.vsix
+          if-no-files-found: error
+          retention-days: 30
+
+  publish:
+    needs: package
+    if: inputs.publish
+    runs-on: ubuntu-latest
+    environment: azure-marketplace
+    permissions: {}
+    steps:
+      - name: Require the token
+        env:
+          AZURE_MARKETPLACE_TOKEN: ${{ secrets.AZURE_MARKETPLACE_TOKEN }}
+        run: |
+          if [[ -z $AZURE_MARKETPLACE_TOKEN ]]; then
+            echo "::error::Secret AZURE_MARKETPLACE_TOKEN is not set on environment azure-marketplace (an Azure DevOps PAT with the Marketplace (publish) scope)"
+            exit 1
+          fi
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: azure-extension
+          path: vsix
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # Anonymous Marketplace queries do not see private extensions, so a duplicate version fails here, in tfx.
+      - name: Publish
+        env:
+          AZURE_MARKETPLACE_TOKEN: ${{ secrets.AZURE_MARKETPLACE_TOKEN }}
+        run: |
+          npx --yes "$TFX" extension publish --no-prompt \
+            --vsix vsix/*.vsix \
+            --token "$AZURE_MARKETPLACE_TOKEN"
