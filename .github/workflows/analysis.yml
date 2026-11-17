@@ -1,11 +1,6 @@
 name: LOCI Integration
 on:
   workflow_dispatch:
-  pull_request:
-    types: [opened, synchronize, reopened]
-  push:
-    branches: 
-      - main
 
 env:
   LOCI_PROJECT: GHDemo
