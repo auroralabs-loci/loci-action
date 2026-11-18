@@ -1,11 +1,28 @@
-const fs = require("fs");
-const path = require("path");
-const fg = require("fast-glob");
-const utils = require("../utils");
+import fs from "fs";
+import path from "path";
+import fg from "fast-glob";
+import * as utils from "../utils";
 
-const core = require("@actions/core");
-const exec = require("@actions/exec");
-const github = require("@actions/github");
+import * as core from "@actions/core";
+import * as exec from "@actions/exec";
+
+const OIDC_AUDIENCE = process.env.LOCI_OIDC_AUDIENCE || "loci-scm-proof";
+
+async function getRepositoryProof() {
+  try {
+    const token = await core.getIDToken(OIDC_AUDIENCE);
+    core.setSecret(token);
+    return token;
+  } catch (err) {
+    const reason = String(err.message).split("\n").map((l) => l.trim()).filter(Boolean).join(" ");
+    core.warning(
+      "LOCI could not prove this workflow runs in the PR's repository, so LOCI may skip its PR checks and comments. " +
+      "Add `permissions: { id-token: write, contents: read }` to the job (pull requests from forks get no token). " +
+      `(${reason})`
+    );
+    return "";
+  }
+}
 
 
 async function writeRunSummary(details) {
@@ -37,41 +54,58 @@ function isELFFile(file) {
   }
 }
 
+async function collectBinaries(entries) {
+  const binaries = new Set();
+
+  for (const entry of entries) {
+    if (!entry) continue;
+
+    if (fs.existsSync(entry)) {
+      const stat = fs.statSync(entry);
+
+      if (stat.isFile()) {
+        if (isELFFile(entry)) {
+          binaries.add(entry);
+        }
+      } else if (stat.isDirectory()) {
+        // Binaries are named after their archive member paths, so keep them relative as given, not absolute.
+        const files = await fg("**/*", { cwd: entry, onlyFiles: true });
+        for (const file of files.map((f) => path.join(entry, f))) {
+          if (isELFFile(file)) {
+            binaries.add(file);
+          }
+        }
+      }
+    } else {
+      const matches = await fg(entry, { onlyFiles: true });
+      if (matches.length === 0) {
+        core.warning(`No files found for pattern: ${entry}, skipping...`);
+        continue;
+      }
+      for (const file of matches) {
+        if (isELFFile(file)) {
+          binaries.add(file);
+        }
+      }
+    }
+  }
+
+  return binaries;
+}
+
 async function run() {
   try {
     const iBase = core.getInput("base", { required: false });
     const iTarget = core.getInput("target", { required: true });
     const iProject = core.getInput("project", { required: true });
     const iBinaries = core.getInput("binaries", { required: true });
-    const iOptimize = core.getInput("optimize", { required: false }) === 'true';
-    const isAgentic = await utils.isAgentic();
     const binaryEntries = iBinaries
       .split("\n")
       .map((x) => x.trim())
       .filter(Boolean);
 
     core.startGroup("Collect binaries");
-    let binaries = new Set();
-    for (const entry of binaryEntries) {
-      if (!entry) {
-        continue;
-      }
-      if (!fs.existsSync(entry)) {
-        const matches = await fg(entry, { onlyFiles: true });
-        if (!matches) {
-          console.warning(`No binary found for entry: ${entry}, skipping...`);
-          continue;
-        }
-        matches.filter(f => isELFFile(f)).forEach(f => binaries.add(f));
-      } else {
-        if (fs.statSync(entry).isDirectory()) {
-          fs.readdirSync(entry).map(f => path.join(entry, f)).filter(f => isELFFile(f)).forEach(f => binaries.add(f));
-        } else if (isELFFile(entry)) {
-          binaries.add(entry);
-        }
-      }
-    }
-
+    const binaries = await collectBinaries(binaryEntries);
     binaries.forEach((file) => core.info(`- ${file}`));
     core.endGroup();
 
@@ -99,18 +133,21 @@ async function run() {
       const pullReq = utils.getPullRequestData();
       const scmMeta = pullReq.getSCMMetaData();
       loci_args.push("--scm-meta", JSON.stringify(scmMeta));
-      if (iOptimize && isAgentic) {
-        loci_args.push("--optimize");
-      } else if (iOptimize && !isAgentic) {
-        core.warning("LOCI Code Agent optimization requested, but the provided company is not configured for agentic mode.");
+    }
+
+    const env = { ...process.env };
+    if (loci_args.includes("--scm-meta")) {
+      const proof = await getRepositoryProof();
+      if (proof) {
+        env.LOCI_SCM_PROOF = proof;
       }
     }
 
-    await exec.exec("loci_api", loci_args, { silent: false });
+    await utils.execLociApi(loci_args, { silent: false, env });
     core.info("Project version uploaded");
     core.endGroup();
 
-    const { s, m, details } = await utils.fetchVersionStatusWithDetails(iProject, iTarget, silent=false, allowInProgress=true);
+    const { details } = await utils.fetchVersionStatusWithDetails(iProject, iTarget, false, true);
     await writeRunSummary(details);
   } catch (err) {
     core.setFailed(`Upload failed: ${err.message}. Terminating analysis.`);
