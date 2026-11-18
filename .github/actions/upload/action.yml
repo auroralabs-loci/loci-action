@@ -7,7 +7,7 @@ inputs:
     description: Paths to binaries.
     required: true
   project:
-    description: LOCI project name.
+    description: Project name.
     required: true
   target:
     description: Version name.
@@ -15,10 +15,7 @@ inputs:
   base:
     description: Base version name. If provided, version is compared against it.
     required: false
-  optimize:
-    description: >
-      Whether to use LOCI Code Agent that optimizes uploaded binaries upon upload.
 
 runs:
-  using: node20
+  using: node24
   main: dist/index.js

@@ -21,6 +21,7 @@ LOCI lets you upload compiled binaries for performance analysis, view insights d
 > - Add `LOCI_BACKEND_URL` as a GitHub Variable.
 > - Add `LOCI_API_KEY` as a GitHub Secret.
 > - Install the LOCI `GitHub App` on your repo if you want automatic PR comments and overall Performance Reviews.
+> - Give the job `permissions: id-token: write` (and `contents: read`, see below). The upload step uses it to prove to LOCI that the workflow runs in the PR's repository; without that proof LOCI may skip its PR checks and comments.
 > - (optional, `agentic mode only`) If you want the summary step to add the summary report to the workflow job UI (note that the job will wait for the binaries upload and analysis to finish), add a Personal Access Token in a `LOCI_GITHUB_TOKEN` env variable for our action (we advice to store the actual token as a GitHub Secret).
 
 ### Example: Build + Upload
@@ -40,6 +41,9 @@ env:
 jobs:
   build-and-upload:
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write   # lets the upload step prove the PR's repository to LOCI
+      contents: read    # a permissions block drops every permission it does not list
     steps:
       - name: Prepare environment
         run: |
@@ -63,7 +67,7 @@ jobs:
           LOCI_BACKEND_URL: ${{ vars.LOCI_BACKEND_URL }}
         with:
           mode: upload
-          project: ${{ env.LOCI_PROJECT }}
+          # project: ${{ env.LOCI_PROJECT }} # Optional: If not set, defaults to repository name
           binaries: samples/build/bin/
 ```
 
@@ -73,6 +77,9 @@ jobs:
 jobs:
   build-upload-and-summary:
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write   # lets the upload step prove the PR's repository to LOCI
+      contents: read    # a permissions block drops every permission it does not list
     steps:
       # ... build steps ...
 
@@ -83,7 +90,7 @@ jobs:
           LOCI_BACKEND_URL: ${{ vars.LOCI_BACKEND_URL }}
         with:
           mode: upload
-          project: ${{ env.LOCI_PROJECT }}
+          # project: ${{ env.LOCI_PROJECT }} # Optional: If not set, defaults to repository name
           binaries: samples/build/bin/
 
       - name: LOCI Summary
@@ -94,21 +101,23 @@ jobs:
           LOCI_GITHUB_TOKEN: ${{ secrets.LOCI_GITHUB_TOKEN }} # required only for agent summary (if agentic mode is enabled)
         with:
           mode: summary
-          project: ${{ env.LOCI_PROJECT }}
+          # project: ${{ env.LOCI_PROJECT }} # Optional: If not set, defaults to repository name
 ```
 
 #### Good to know
 
 - The upload step is enough for the GitHub App to add a comment on the PR (if installed and the company has agentic mode enabled).
 - The summary step is only needed if you want the workflow run summary to show the LOCI Report and Top Function Insights.
-
+- When the upload carries PR metadata, the upload step requests a GitHub OIDC token (audience `loci-scm-proof`) and sends it to LOCI, which checks that the token was issued to a workflow of the PR's repository. If the job lacks `id-token: write`, the step logs a warning and uploads without it. Once a repository has been proven, later uploads (for example from fork PRs, which get no token) keep their PR checks and comments.
+- Setting `permissions` replaces the defaults: list `contents: read` (needed by `actions/checkout` in private repositories and for the merge-base lookup) next to `id-token: write`, plus anything else your job needs.
+- If the `project` input is not provided, the repository name will be used as the project name automatically.
 
 ### Inputs
 
 | Input           |       Required      |              Default             | Description                                                                                          |
 | --------------- | :-----------------: | :------------------------------: | ---------------------------------------------------------------------------------------------------- |
 | `mode`          |        ✅ Yes        |                 —                | Operation to perform: `upload` or `summary`.                                                         |
-| `project`       |        ✅ Yes        |                 —                | Project name to tag analysis results.                                                                |
+| `project`       |          No         |      Repository name             | Project name to tag analysis results. If not set, defaults to the repository name.                   |
 | `binaries`      | *Only for `upload`* |                 —                | Newline-separated list of binary paths, glob patterns or a directory. Required for `upload`, ignored for `summary`. |
 | `target`        |          No         |       `<branch>@<shortSHA>`      | Project version label. Auto-resolves if not set.                                                     |
 | `base`          |          No         | PR merge base (on pull requests) | Base version to compare against. Empty unless set or PR context.                                     |
@@ -141,3 +150,9 @@ jobs:
 - GitHub App installed →
   - Posts LOCI Agent Summary Report as a PR comment (Agentic only).
   - Enables Performance Review Check Run (pass/fail).
+
+## Azure DevOps
+
+LOCI is also available as an Azure DevOps extension. See
+[`azure/README.md`](./azure/README.md) for setup and usage. v1 ships
+`mode: upload` only; summary-mode rendering is planned for a future release.

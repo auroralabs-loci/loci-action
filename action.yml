@@ -7,16 +7,12 @@ branding:
   color: "orange"
 
 inputs:
-  token:
-    description: GitHub token for API access (used for merge-base detection in PRs)
-    required: false
-    default: '${{ github.token }}'
   mode:
     description: Operation to perform. Can be 'upload' or 'summary'.
     required: true
   project:
-    description: Project name.
-    required: true
+    description: Project name. If not provided, repository name is used.
+    required: false
   binaries:
     description: >
       Paths to binaries (required for 'upload', ignored for 'summary').
@@ -47,12 +43,6 @@ inputs:
       Accepts 'true' or 'false'.
     required: false
     default: 'true'
-  optimize:
-    description: >
-      Whether to use the LOCI Coding Agent to optimize uploaded binaries (only for mode: upload).
-      Ignored if the PR author is the LOCI Agentic AI bot. Accepts 'true' or 'false'.
-    required: false
-    default: 'false'
 
 
 outputs:
@@ -95,28 +85,28 @@ runs:
       id: resolve
       uses: auroralabs-loci/loci-action/.github/actions/resolve@v1
       with:
-        token:     ${{ inputs.token }}
         project:   ${{ inputs.project }}
         target:    ${{ inputs.target }}
         base:      ${{ inputs.base }}
         wait-base: ${{ inputs.wait-base }}
-    
+        token:     ${{ github.token }}
+
     - name: Upload LOCI artifacts (target=${{ steps.resolve.outputs.target }}, base=${{ steps.resolve.outputs.base || 'none' }})
       id: upload
       if: ${{ inputs.mode == 'upload' }}
       uses: auroralabs-loci/loci-action/.github/actions/upload@v1
       with:
-        project:   ${{ inputs.project }}
-        binaries:  ${{ inputs.binaries }}
+        project:   ${{ steps.resolve.outputs.project }}
         target:    ${{ steps.resolve.outputs.target }}
         base:      ${{ steps.resolve.outputs.base }}
-        optimize:  ${{ inputs.optimize }}
+        binaries:  ${{ inputs.binaries }}
 
     - name: Generate LOCI summary
       id: summary
       if: ${{ inputs.mode == 'summary' }}
       uses: auroralabs-loci/loci-action/.github/actions/summary@v1
       with:
-        project:   ${{ inputs.project }}
+        project:   ${{ steps.resolve.outputs.project }}
         target:    ${{ steps.resolve.outputs.target }}
         base:      ${{ steps.resolve.outputs.base }}
+        top-n-symbols: ${{ inputs.top-n-symbols }}
