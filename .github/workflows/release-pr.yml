@@ -1,0 +1,101 @@
+name: LOCI Integration (release PR)
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  LOCI_PROJECT: GHDemo
+
+jobs:
+  release-pr:
+    name: Test the release
+    if: startsWith(github.head_ref, 'sync/') && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - name: Prepare environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+
+      - name: Checkout pull request head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+
+      - name: Build sample
+        run: |
+          mkdir -p samples/build/bin
+          aarch64-linux-gnu-g++ -o samples/build/bin/sample_01 samples/sample_01.cpp
+
+      # The root action names its sub-actions @v1, which would test the released ones.
+      - name: Point the action's sub-actions at this commit
+        env:
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          [[ $HEAD_SHA =~ ^[0-9a-f]{40}$ ]]
+          git ls-files -z '*action.yml' | xargs -0 sed -i -E "s#(auroralabs-loci/loci-action/[^@[:space:]]+)@v1([[:space:]]|$)#\1@$HEAD_SHA\2#"
+          git diff -U0
+          if git grep -nE 'auroralabs-loci/loci-action[^@[:space:]]*@' -- '*action.yml' | grep -v "@$HEAD_SHA"; then
+            echo "::error::Action references left unpinned to $HEAD_SHA"
+            exit 1
+          fi
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5.6.0
+        with:
+          python-version: '3.12'
+
+      - name: Install the pinned CLI
+        run: pip install -r requirements.txt
+
+      # The action compares against <base branch>@<merge base>; pushes to main no longer upload it.
+      - name: Upload the base version if LOCI lacks it
+        env:
+          LOCI_API_KEY: ${{ secrets.LOCI_API_KEY }}
+          LOCI_BACKEND_URL: ${{ vars.LOCI_BACKEND_URL }}
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          merge_base=$(gh api "repos/$REPO/compare/$BASE_SHA...$HEAD_SHA" --jq .merge_base_commit.sha)
+          base="$BASE_REF@${merge_base:0:7}"
+          if ! loci_api status "$LOCI_PROJECT" "$base" > /dev/null; then
+            tar -zcf "$RUNNER_TEMP/base.tar.gz" samples/build/bin/sample_01
+            loci_api upload "$RUNNER_TEMP/base.tar.gz" "$LOCI_PROJECT" "$base" --no-wait
+          fi
+
+      - name: Upload Artifacts
+        uses: ./
+        env:
+          LOCI_API_KEY: ${{ secrets.LOCI_API_KEY }}
+          LOCI_BACKEND_URL: ${{ vars.LOCI_BACKEND_URL }}
+        with:
+          mode: upload
+          project: ${{ env.LOCI_PROJECT }}
+          binaries: samples/build/bin/
+
+      - name: Wait for Agent Summary
+        uses: ./
+        env:
+          LOCI_API_KEY: ${{ secrets.LOCI_API_KEY }}
+          LOCI_BACKEND_URL: ${{ vars.LOCI_BACKEND_URL }}
+          LOCI_GITHUB_TOKEN: ${{ secrets.REPO_READ_ONLY_PAT }}
+        with:
+          mode: summary
+          project: ${{ env.LOCI_PROJECT }}
+          wait-base: 'true'
