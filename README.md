@@ -22,7 +22,7 @@ LOCI lets you upload compiled binaries for performance analysis, view insights d
 > - Add `LOCI_API_KEY` as a GitHub Secret.
 > - Install the LOCI `GitHub App` on your repo if you want automatic PR comments and overall Performance Reviews.
 > - Give the job `permissions: id-token: write` (and `contents: read`, see below). The upload step uses it to prove to LOCI that the workflow runs in the PR's repository; without that proof LOCI may skip its PR checks and comments.
-> - (optional, `agentic mode only`) If you want the summary step to add the summary report to the workflow job UI (note that the job will wait for the binaries upload and analysis to finish), add a Personal Access Token in a `LOCI_GITHUB_TOKEN` env variable for our action (we advice to store the actual token as a GitHub Secret).
+> - (optional, `agentic mode only`) If you want the summary step to add the summary report to the workflow job UI (note that the job will wait for the binaries upload and analysis to finish), add a Personal Access Token in a `LOCI_SCM_TOKEN` env variable for our action (we advice to store the actual token as a GitHub Secret).
 
 ### Example: Build + Upload
 
@@ -98,7 +98,7 @@ jobs:
         env:
           LOCI_API_KEY: ${{ secrets.LOCI_API_KEY }}
           LOCI_BACKEND_URL: ${{ vars.LOCI_BACKEND_URL }}
-          LOCI_GITHUB_TOKEN: ${{ secrets.LOCI_GITHUB_TOKEN }} # required only for agent summary (if agentic mode is enabled)
+          LOCI_SCM_TOKEN: ${{ secrets.LOCI_SCM_TOKEN }} # required only for agent summary (if agentic mode is enabled)
         with:
           mode: summary
           # project: ${{ env.LOCI_PROJECT }} # Optional: If not set, defaults to repository name
