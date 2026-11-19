@@ -43,7 +43,7 @@ jobs:
         env:
           LOCI_API_KEY: '${{ secrets.LOCI_API_KEY }}'
           LOCI_BACKEND_URL: '${{ vars.LOCI_BACKEND_URL }}'
-          LOCI_GITHUB_TOKEN: '${{ secrets.REPO_READ_ONLY_PAT }}' 
+          LOCI_SCM_TOKEN: '${{ secrets.REPO_READ_ONLY_PAT }}' 
         with:
           mode: summary
           project: ${{ env.LOCI_PROJECT }}
