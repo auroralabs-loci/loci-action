@@ -1,7 +1,7 @@
 ## LOCI GitHub Action
 
 
-[![View on Marketplace](https://img.shields.io/badge/GitHub%20Marketplace-View%20Action-blue?logo=github)](https://github.com/marketplace/actions/loci-action) [![Check Workflow Runs](https://img.shields.io/badge/Workflow%20Runs-View%20on%20GitHub-orange?logo=githubactions)](https://github.com/auroralabs-loci/loci-action/actions)
+[![View on Marketplace](https://img.shields.io/badge/GitHub%20Marketplace-View%20Action-blue?logo=github)](https://github.com/marketplace/actions/loci-action) [![Check Workflow Runs](https://img.shields.io/badge/Workflow%20Runs-View%20on%20GitHub-orange?logo=githubactions)](https://github.com/auroralabs-loci/loci-action/actions) [![Release Notes](https://img.shields.io/badge/Release%20Notes-View%20on%20GitHub-green?logo=github)](https://github.com/auroralabs-loci/loci-action/releases?page=1)
 
 
 **Line of Code Insights (LOCI)** Agentic AI is the First Hardware-Aware Optimization Agent for CPUs. It predicts power spikes and Performance inefficiencies before test or inference. Optimizes code, configs, and serving - autonomously. It uncovers anomalies in static data, shifts observability left, and predicts emerging trends in dynamic data, discovering hardware and software reliability issues, to reduce costs and time to resolution. 
